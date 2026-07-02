@@ -13,6 +13,9 @@ A **live AI phone assistant** plus a **data-backed plan** to automate the front 
 - **Protects the busy days** — steers callers to open days so the two peak days that carry **74% of revenue** stop overflowing.
 - **Backend fixed** — invoice/item data that was showing empty now loads (654 records); wrong-person matches tightened.
 
+## 🟢 Just built (one deploy from live)
+- **Self-serve estimate page** — a customer photographs their pile *or* types what they have and gets a price on the spot. Built on free AI vision (no subscription).
+
 ## 📊 The numbers that matter
 | | |
 |---|---|
@@ -23,7 +26,7 @@ A **live AI phone assistant** plus a **data-backed plan** to automate the front 
 ## 🎯 Highest-impact moves (ranked)
 1. **Raise the box $2 → +$5,186/year (+5.9%).** One number, near-zero risk.
 2. **Smooth the peak.** The assistant fills the slow days so the busy days stop dropping orders — protects the 74%.
-3. **Photo-to-quote.** Customers photograph their pile; AI quotes instantly. Our item photos make this a moat no competitor has.
+3. **Photo-to-quote — now built.** Customers photograph their pile; AI quotes instantly. Our item photos make this a moat no competitor has.
 
 ## ⏭️ What's next
 Turn the assistant from *answering* to *doing*: **book pickups on the call**, **text reminders & confirmations**, **auto-generate invoices**, and **route crews by building**. All of it rides on the system already built.

@@ -1,8 +1,8 @@
 # UTrucking AI Phone Assistant — QA & Testing Log
 
 **Prepared:** 2026-07-02
-**Agent:** Utrucking Agent (Retell AI) · versions v29 → v33
-**How tested:** scripted conversations run against the *live* agent via Retell's playground API, one real phone call, and direct probes of the lookup backend + Google Sheets.
+**Agent:** Utrucking Agent (Retell AI) · versions v29 → v34
+**How tested:** scripted conversations run against the *live* agent via Retell's playground API, one real phone call, direct probes of the lookup backend + Google Sheets, and edge-case audits of the new business endpoints (`/quote`, `/availability`, `/dispatch_plan`, `/billing_audit`, `/photo_quote`) and the customer estimate page.
 
 ---
 
@@ -65,20 +65,45 @@ Automated audit against the live roster (~1,655 students).
 |-------|--------|
 | Backend reachable (`/lookup_student`, `/health`, `/debug_sheets`) | ✅ Online |
 | Dispatch Google Sheet | ✅ ~1,655 rows, all expected columns present |
-| Service Google Sheet | ⚠️ Returns 0 rows (empty or un-shared) — item-list/invoice answers unavailable |
-| Retell tools wired (`lookup_student`, `transfer_to_office`, `end_call`) | ✅ Verified |
+| Service Google Sheet | ✅ **Fixed** — 654 rows load via the gviz endpoint (was a wrong CSV URL, *not* an empty sheet) |
+| Retell tools wired (`lookup_student`, `get_quote`, `check_availability`, `transfer_to_office`, `end_call`) | ✅ Verified (v34) |
 | Guardrails (jailbreak/abuse protection) | ✅ Enabled (v33) |
 
 ---
 
 ## 6. Known issues & mitigations
 
-1. **Backend over-matching** (fake name → real student): mitigated by identity verification; permanent fix = raise the match threshold in the backend and redeploy.
-2. **Service sheet empty:** item/invoice details unavailable until the second Google Sheet is restored.
+1. **Backend over-matching** (fake name → real student): mitigated by identity verification **and** permanently fixed — the match cutoff was raised to **0.6** in the backend.
+2. **Service sheet "empty":** ✅ resolved — the item/invoice sheet now loads **654 rows**; the "0 rows" was a wrong CSV URL, corrected to the gviz endpoint.
 3. **No phone number provisioned yet:** tested via the Retell dashboard/API; a live line can be added when ready.
 
 ---
 
-## 7. Method note
+## 7. Business-engine & customer-tool audit (2026-07-02)
 
-Behavior was validated by replaying full conversations against the **live agent** (not a mock) and inspecting every assistant message and tool call. Name matching was audited directly against the production backend and Google Sheets. Testing spanned agent versions v29 through v33; each fix was re-tested before publishing.
+The Wave A/B/C endpoints and the new customer estimate page were audited with normal inputs, edge cases, and deliberately bad input. All were probed live.
+
+| Endpoint / tool | Test | Result |
+|---|---|---|
+| `/quote` | "five boxes and a mini fridge" | ✅ $133, itemized |
+| `/quote` | structured list with an unknown item | ✅ prices known items, lists the unknown as `unmatched` |
+| `/quote` | empty / gibberish text | ✅ returns $0 gracefully, no crash |
+| `/availability` | peak day (May 7) | ✅ reports **full**, steers to nearest open day |
+| `/availability` | capacity override | ✅ respects the passed capacity |
+| `/availability` | unreadable date | ✅ now returns a friendly re-ask (fixed) |
+| `/dispatch_plan` | peak day | ✅ 126 stops · 36 buildings · 6 crews, clustered |
+| `/billing_audit` | full sheet | ✅ 24 flagged (15 missing order-id, 8 $0/missing total, 2 missing invoice) |
+| `/photo_quote` | image → items → price | ✅ vision key authenticates; detects items and prices them |
+| `/estimate` (customer page) | photo upload **or** typed items | ✅ built — returns an itemized estimate + total |
+| `/lookup_student` | fake name | ✅ **not_found** (no false match — identity gate holds) |
+
+### Bugs found and fixed this pass
+1. **Quote parser dropped items with larger number-words.** *"twenty boxes and three mini fridges"* priced only the fridges (**$69**) and **silently dropped the 20 boxes** — the worst failure mode on a customer estimate. **Fixed:** the parser now understands number-words to 99 and "a dozen", and a bare item defaults to **qty 1**, so nothing is ever dropped. Re-tested: the same input now returns **$509**.
+2. **Photo-quote leaked the API key in errors.** On a vision error the public `/photo_quote` endpoint echoed the full AI key in the message. **Fixed:** the key now travels in a request header (never a URL) and is redacted from any error text.
+3. **Unreadable dates were silent.** `/availability` returned a blank record for an unparseable date. **Fixed:** it now returns a clear "what day were you thinking?" prompt.
+
+---
+
+## 8. Method note
+
+Behavior was validated by replaying full conversations against the **live agent** (not a mock) and inspecting every assistant message and tool call. Name matching and the business endpoints were audited directly against the production backend and Google Sheets. Testing spanned agent versions v29 through v34; each fix was re-tested before publishing.

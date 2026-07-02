@@ -52,10 +52,14 @@ Live ops dashboard · demand forecast · ask-your-data staff copilot · fall ret
 
 ## HANDOFF — what you need to do / provide
 
-### ✅ Done from my end (live now)
-- Backend deployed — `/quote`, `/availability`, `/billing_audit`, `/dispatch_plan`, `/photo_quote` are live.
+### ✅ Done from my end
+- Backend endpoints — `/quote`, `/availability`, `/billing_audit`, `/dispatch_plan`, `/photo_quote` (live at commit `3790257`).
 - **Voice agent updated & published (v34)** — it now calls `get_quote` and `check_availability` on calls.
 - Crew capacity set from your numbers (peak ~6, high 8 → 3 → 2). `JOBS_PER_CREW = 15` in `engines.py` — tune that one number if per-crew throughput differs.
+- **NEW — customer estimate page** `GET /estimate` — a self-serve web page where a customer uploads a photo *or* types items and gets an instant price. Pushed in `b3852a6`.
+- **NEW — hardening (commit `8d0d831`):** quote parser now handles number-words to 99 + "a dozen" and never drops an item (bare item = qty 1); `/photo_quote` moves the AI key into a request header and redacts it from errors (was leaking on a public endpoint); unreadable dates return a friendly re-ask.
+
+> ⏳ **One action for you:** these last two commits (`b3852a6`, `8d0d831`) are pushed but **not deployed** — click **"Deploy latest commit"** in Render to activate `/estimate`, the key-leak fix, and the parser fix. (Render auto-deploy is off.)
 
 ### Environment variables to add in Render (Service → Environment)
 | Variable | For | Notes |

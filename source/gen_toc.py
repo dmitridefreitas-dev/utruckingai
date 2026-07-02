@@ -6,13 +6,13 @@ src_dir = pathlib.Path(sys.argv[2])   # where to write temp files (source)
 
 sections = [
     ("Executive Brief - Start Here", "EXEC_BRIEF.pdf"),
-    ("Plan, Progress & Roadmap", "PLAN.pdf"),
-    ("Data & Revenue Audit", "UTrucking_Data_Audit.pdf"),
-    ("Call Journey - What Happens on a Call", "UTrucking_Call_Journey.pdf"),
-    ("Agent Flow - Technical Conversation Map", "UTrucking_Voice_Agent_Flow.pdf"),
-    ("Connections & Infrastructure", "CONNECTIONS.pdf"),
-    ("QA & Testing Log", "TEST_LOG.pdf"),
-    ("Executive Overview (Slides)", "UTrucking_Executive_Deck.pdf"),
+    ("The Plan - Done, Value, Next & Required", "PLAN.pdf"),
+    ("The Numbers - Data & Revenue Audit", "UTrucking_Data_Audit.pdf"),
+    ("Reference: Call Journey", "UTrucking_Call_Journey.pdf"),
+    ("Reference: Agent Flow (Conversation Map)", "UTrucking_Voice_Agent_Flow.pdf"),
+    ("Reference: Connections & Infrastructure", "CONNECTIONS.pdf"),
+    ("Reference: QA & Testing Log", "TEST_LOG.pdf"),
+    ("Visual Recap - Executive Slides", "UTrucking_Executive_Deck.pdf"),
 ]
 
 # --- Layout constants, in CSS px. The page is forced to Letter with margin:0,
