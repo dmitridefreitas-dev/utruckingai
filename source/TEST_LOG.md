@@ -102,6 +102,25 @@ The Wave A/B/C endpoints and the new customer estimate page were audited with no
 2. **Photo-quote leaked the API key in errors.** On a vision error the public `/photo_quote` endpoint echoed the full AI key in the message. **Fixed:** the key now travels in a request header (never a URL) and is redacted from any error text.
 3. **Unreadable dates were silent.** `/availability` returned a blank record for an unparseable date. **Fixed:** it now returns a clear "what day were you thinking?" prompt.
 
+### Photo-estimate — live end-to-end proof
+A random moving-boxes photo (a public image the system had never seen) was run through the full customer pipeline — **fetch image → AI vision (`gemini-2.5-flash`) → item detection → catalog pricing:**
+
+- **AI detected:** 9× box, a dolly, 2× moving blanket, packing tape, a moving strap.
+- **Quote returned:** **9× UTrucking Box = $198.00**, with the dolly / moving blanket / packing tape / moving strap correctly listed as *not priced* (they aren't stored items).
+
+This confirms the customer *photo → instant estimate* flow works on unseen, real-world photos — not just curated test cases.
+
+### Photo-path hardening (surfaced by that test)
+| Fix | Why it matters |
+|---|---|
+| Switched vision model to `gemini-2.5-flash` | `gemini-2.0-flash`'s free-tier quota was returning `429` |
+| Browser User-Agent + HTTP-status check on `image_url` fetch | Some hosts (e.g. Wikimedia) `403` a request with no User-Agent; the backend was sending an error page to the vision model |
+| Real image mime-type sniffing (magic bytes) | Was hard-coded to JPEG — an **iPhone HEIC** or PNG upload would have failed |
+| Browser-side downscale + JPEG conversion on upload | Faster uploads; normalizes HEIC and oversized photos |
+| Generic AI names mapped to the catalog | "cardboard box" / "refrigerator" / "storage bin" now resolve to your items |
+| Auto-retry on transient `429` / `503` | The vision API briefly overloaded mid-test; a retry recovered it |
+| API key moved to a request header + redacted from errors | The public endpoint had been echoing the key on an error |
+
 ---
 
 ## 8. Method note
