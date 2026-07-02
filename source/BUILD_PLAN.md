@@ -52,10 +52,18 @@ Live ops dashboard · demand forecast · ask-your-data staff copilot · fall ret
 
 ## HANDOFF — what you need to do / provide
 
-### To activate what's already built (no new accounts needed)
-1. **Deploy the backend** — Render → `utrucking-mcp` service → **Manual Deploy → Deploy latest commit** (`4be7802`). This turns on `/quote`, `/availability`, `/billing_audit`.
-2. **Expose the tools to the voice agent** — add two Retell custom functions pointing at `POST /quote` and `POST /availability`. *(I can wire these via the Retell API once the deploy is live.)*
-3. **Give me your real daily crew capacity** — the scheduler currently assumes 100 pickups/day.
+### ✅ Done from my end (live now)
+- Backend deployed — `/quote`, `/availability`, `/billing_audit`, `/dispatch_plan`, `/photo_quote` are live.
+- **Voice agent updated & published (v34)** — it now calls `get_quote` and `check_availability` on calls.
+- Crew capacity set from your numbers (peak ~6, high 8 → 3 → 2). `JOBS_PER_CREW = 15` in `engines.py` — tune that one number if per-crew throughput differs.
+
+### Environment variables to add in Render (Service → Environment)
+| Variable | For | Notes |
+|---|---|---|
+| `GEMINI_API_KEY` | Photo-to-quote (`/photo_quote`) | **Free** at aistudio.google.com. Optional `VISION_PROVIDER=gemini` (default). This is the only one needed now. |
+| `TWILIO_ACCOUNT_SID` · `TWILIO_AUTH_TOKEN` · `TWILIO_FROM` | SMS (reminders, texts, pay-links) | for the Wave B/C SMS tools |
+| `GOOGLE_SERVICE_ACCOUNT_JSON` | Booking + invoice write-back | needs edit access to the sheets |
+| `STRIPE_API_KEY` | Card pay-links | payment chaser |
 
 ### Accounts / keys for the external-service parts (build code ready, you provide the account)
 | Capability | You provide | ~Cost |

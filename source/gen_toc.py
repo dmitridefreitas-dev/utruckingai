@@ -5,6 +5,7 @@ out_dir = pathlib.Path(sys.argv[1])   # where the component PDFs live (root)
 src_dir = pathlib.Path(sys.argv[2])   # where to write temp files (source)
 
 sections = [
+    ("Executive Brief - Start Here", "EXEC_BRIEF.pdf"),
     ("Plan, Progress & Roadmap", "PLAN.pdf"),
     ("Data & Revenue Audit", "UTrucking_Data_Audit.pdf"),
     ("Call Journey - What Happens on a Call", "UTrucking_Call_Journey.pdf"),

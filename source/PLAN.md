@@ -143,6 +143,23 @@ Live ops dashboard · demand forecast (per-building, keyed to the academic calen
 
 ---
 
+## What each new tool needs — accounts & monthly cost
+
+The tools already built run on the current setup at **no extra cost**. The remaining ones need a simple account; costs are small and mostly usage-based.
+
+| Tool / capability | What it needs | Rough cost |
+|---|---|---|
+| Quote engine · scheduler · route planner · billing audit | **Already built** on the current backend | **$0 extra** |
+| Phone line for the assistant | A phone number in Retell | ~$1–3 / mo + ~$0.07–0.10 / min |
+| Text / SMS (reminders, confirmations, pay-links) | A Twilio account + number | ~$1–2 / mo + ~$0.008 / text |
+| **Photo-to-quote** & damage-photo tagging (AI vision) | A vision-AI key — **free tier available (Google Gemini)** | **$0** on the free tier |
+| Booking / rescheduling + auto-invoices | A Google service account (edit access) *or* a small database | free |
+| Card payments / pay-links | A Stripe account | per-transaction fee |
+
+*Photo-to-quote does **not** require a paid AI subscription — a free Google Gemini key covers our low volume.*
+
+---
+
 ## Future-proofing audit (do these before scaling)
 
 Small investments now that prevent expensive breakage later:
