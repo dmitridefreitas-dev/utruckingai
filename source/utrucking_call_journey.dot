@@ -1,0 +1,35 @@
+digraph Journey {
+  rankdir=TB; bgcolor="white";
+  labelloc="t"; label="The UTrucking Phone Assistant  —  What Happens on a Call";
+  fontname="Helvetica-Bold"; fontsize=24;
+  node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=14, margin="0.3,0.18", width=3.8, penwidth=0];
+  edge [fontname="Helvetica-Bold", fontsize=11, color="#888888", arrowsize=0.9];
+
+  s1 [label="1.  The caller phones in\nThe assistant answers with a warm greeting", fillcolor="#C8E6C9"];
+  s2 [label="2.  \"How can I help you today?\"\nThe caller says what they need", fillcolor="#E3F2FD"];
+  b  [label="Is it about\ntheir own order?", shape=diamond, style=filled, fillcolor="#FFE082", fontsize=12, width=2.4, height=1.2];
+  g  [label="General question\n(pricing, services, how it all works)\nThe assistant answers in plain, friendly terms", fillcolor="#E1BEE7"];
+  s3 [label="3.  The assistant asks for the caller's name", fillcolor="#E3F2FD"];
+  s4 [label="4.  It finds their order and makes sure\nit's really them  (a quick privacy check)", fillcolor="#E3F2FD"];
+  ver[label="Is it really\nthem?", shape=diamond, style=filled, fillcolor="#FFE082", fontsize=12, width=2.4, height=1.2];
+  s5 [label="5.  \"What would you like to know?\"\nIt offers what it can share", fillcolor="#E3F2FD"];
+  s6 [label="6.  It answers simply -\none thing at a time, no jargon", fillcolor="#E3F2FD"];
+  s7 [label="7.  \"Anything else?\"", shape=diamond, style=filled, fillcolor="#FFE082", fontsize=12, width=2.4, height=1.2];
+  team [label="Connects the caller\nto the UTrucking team", fillcolor="#FFCC80"];
+  s8 [label="8.  Friendly goodbye - the call ends", fillcolor="#FFCDD2"];
+
+  s1 -> s2 -> b;
+  b  -> s3 [label="  YES"];
+  b  -> g  [label="  NO"];
+  g  -> s7;
+  s2 -> team [label="  \"talk to a person\"", style=dashed, constraint=false];
+  s3 -> s4 -> ver;
+  ver -> s5   [label="  YES"];
+  ver -> team [label="  can't confirm"];
+  s5 -> s6 -> s7;
+  s7 -> s5 [label="  another question"];
+  s7 -> s8 [label="  all set"];
+  team -> s8 [style=dashed];
+
+  { rank=same; b; g; }
+}

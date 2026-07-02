@@ -1,0 +1,16 @@
+# ── Real customer data — NEVER publish (names, phones, addresses) ──
+source/analytics/data/
+source/utrucking-test-calls.txt
+
+# ── Internal infrastructure identifiers (live Google Sheet IDs / URLs) ──
+source/CONNECTIONS.md
+CONNECTIONS.pdf
+source/analytics/refresh_data.ps1
+UTrucking_AI_Assistant_Full_Report.pdf
+
+# ── misc ──
+.claude/
+__pycache__/
+*.pyc
+*.tmp
+_*.html

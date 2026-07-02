@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>UTrucking AI Phone Assistant — Executive Briefing</title>
+<style>
+  :root{
+    --blue:#14335f; --blue2:#1e5aa8; --accent:#f5a623; --ink:#1f2933;
+    --muted:#5b6b7f; --soft:#f4f7fb; --line:#e3e9f2; --green:#2e7d32;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  @page{ size:13.333in 7.5in; margin:0; }
+  html,body{ font-family:"Segoe UI",-apple-system,system-ui,Arial,sans-serif; color:var(--ink); }
+  .slide{
+    position:relative; width:13.333in; height:7.5in; padding:0.75in 0.95in 0.7in;
+    page-break-after:always; overflow:hidden; background:#fff;
+  }
+  .slide:last-child{ page-break-after:auto; }
+  .eyebrow{ text-transform:uppercase; letter-spacing:.18em; font-size:13px; font-weight:700; color:var(--accent); margin-bottom:14px; }
+  h1{ font-size:52px; line-height:1.08; color:var(--blue); font-weight:800; letter-spacing:-.5px; }
+  h2{ font-size:38px; line-height:1.12; color:var(--blue); font-weight:800; letter-spacing:-.4px; }
+  .sub{ font-size:22px; color:var(--muted); margin-top:16px; line-height:1.4; max-width:9.5in; }
+  .accentbar{ position:absolute; left:0; top:0; width:0.22in; height:100%; background:var(--accent); }
+  .pnum{ position:absolute; right:0.55in; bottom:0.42in; font-size:12px; color:#9aa7b8; }
+  .foot{ position:absolute; left:0.95in; bottom:0.42in; font-size:12px; color:#9aa7b8; letter-spacing:.03em; }
+  ul.big{ margin-top:30px; list-style:none; }
+  ul.big li{ font-size:23px; line-height:1.5; color:var(--ink); padding-left:38px; position:relative; margin-bottom:20px; max-width:10in; }
+  ul.big li::before{ content:""; position:absolute; left:0; top:12px; width:14px; height:14px; border-radius:4px; background:var(--accent); }
+  .kicker{ margin-top:34px; font-size:22px; font-weight:700; color:var(--blue2); }
+  /* title slide */
+  .title{ background:linear-gradient(135deg,#14335f 0%, #1e5aa8 100%); color:#fff; }
+  .title h1{ color:#fff; font-size:60px; max-width:10.5in; }
+  .title .sub{ color:#d7e4f5; font-size:24px; }
+  .title .eyebrow{ color:var(--accent); }
+  .title .foot{ color:#9db8dc; }
+  /* grids */
+  .grid{ margin-top:34px; display:grid; grid-template-columns:1fr 1fr 1fr; gap:20px; }
+  .tile{ background:var(--soft); border:1px solid var(--line); border-radius:14px; padding:22px 22px; }
+  .tile .t{ font-size:20px; font-weight:700; color:var(--blue); }
+  .tile .d{ font-size:16px; color:var(--muted); margin-top:6px; line-height:1.4; }
+  /* stat tiles */
+  .stats{ margin-top:36px; display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:20px; }
+  .stat{ background:var(--soft); border:1px solid var(--line); border-radius:14px; padding:26px 20px; text-align:center; }
+  .stat .n{ font-size:44px; font-weight:800; color:var(--blue2); line-height:1; }
+  .stat .l{ font-size:15px; color:var(--muted); margin-top:12px; line-height:1.35; }
+  /* roadmap */
+  .cols{ margin-top:34px; display:grid; grid-template-columns:1fr 1fr 1fr; gap:22px; }
+  .col{ border-radius:14px; padding:24px; }
+  .col h3{ font-size:20px; margin-bottom:14px; }
+  .col.today{ background:#eaf3ea; border:1px solid #cfe3cf;} .col.today h3{ color:var(--green);}
+  .col.next{ background:var(--soft); border:1px solid var(--line);} .col.next h3{ color:var(--blue2);}
+  .col.later{ background:#fdf3e2; border:1px solid #f4e0bd;} .col.later h3{ color:#b9791a;}
+  .col ul{ list-style:none; } .col li{ font-size:16.5px; color:var(--ink); line-height:1.4; margin-bottom:11px; padding-left:20px; position:relative;}
+  .col li::before{ content:"–"; position:absolute; left:0; color:#9aa7b8;}
+  .imgwrap{ margin-top:14px; text-align:center; }
+  .imgwrap img{ height:5.35in; width:auto; }
+  .lead{ font-size:24px; line-height:1.5; color:var(--ink); margin-top:34px; max-width:9.6in; }
+  .lead strong{ color:var(--blue); }
+</style>
+</head>
+<body>
+
+<section class="slide title">
+  <div class="accentbar"></div>
+  <div style="margin-top:1.4in">
+    <div class="eyebrow">Executive Briefing</div>
+    <h1>The UTrucking AI Phone Assistant</h1>
+    <div class="sub">A voice assistant that answers student calls, looks up their orders, and hands off to your team — around the clock.</div>
+  </div>
+  <div class="foot">University Trucking · Confidential · July 2026</div>
+</section>
+
+<section class="slide">
+  <div class="accentbar"></div>
+  <div class="eyebrow">The Opportunity</div>
+  <h2>The front desk fields the same calls, all season long</h2>
+  <ul class="big">
+    <li>"Where's my pickup?" · "What's my order status?" · "How much is storage?" — the same questions, thousands of times.</li>
+    <li>Call volume spikes at move-out and move-in — exactly when the team is busiest.</li>
+    <li>UTrucking serves roughly half of WashU undergrads, so the repeat-call load is real.</li>
+  </ul>
+  <div class="kicker">Nearly every one of those calls can be answered automatically.</div>
+  <div class="foot">UTrucking AI Phone Assistant</div><div class="pnum">2</div>
+</section>
+
+<section class="slide">
+  <div class="accentbar"></div>
+  <div class="eyebrow">The Solution</div>
+  <h2>A friendly voice that never puts anyone on hold</h2>
+  <ul class="big">
+    <li>Answers instantly, 24/7, in a warm and natural voice.</li>
+    <li>Looks up any student's order by name and answers their questions.</li>
+    <li>Knows UTrucking's services, pricing, and policies.</li>
+    <li>Connects the caller to a real person the moment it's needed.</li>
+  </ul>
+  <div class="foot">UTrucking AI Phone Assistant</div><div class="pnum">3</div>
+</section>
+
+<section class="slide">
+  <div class="accentbar"></div>
+  <div class="eyebrow">The Experience</div>
+  <h2>What happens on a call</h2>
+  <div class="imgwrap"><img src="UTrucking_Call_Journey.png" alt="Call journey"></div>
+  <div class="foot">UTrucking AI Phone Assistant</div><div class="pnum">4</div>
+</section>
+
+<section class="slide">
+  <div class="accentbar"></div>
+  <div class="eyebrow">Capabilities</div>
+  <h2>What it can do today</h2>
+  <div class="grid">
+    <div class="tile"><div class="t">Find an order</div><div class="d">Looks up a student's order by name, even mispronounced or misspelled.</div></div>
+    <div class="tile"><div class="t">Verify it's them</div><div class="d">Confirms identity before sharing anything — a built-in privacy check.</div></div>
+    <div class="tile"><div class="t">Answer clearly</div><div class="d">Status, pickup location, date & time, dispatch — one clear answer at a time.</div></div>
+    <div class="tile"><div class="t">Know the business</div><div class="d">Pricing, services, and policies from an always-current knowledge base.</div></div>
+    <div class="tile"><div class="t">Hand off to a human</div><div class="d">Transfers to the UTrucking team whenever the caller wants a person.</div></div>
+    <div class="tile"><div class="t">Stay on track</div><div class="d">Brief, natural, and focused — no rambling, no reading out raw data.</div></div>
+  </div>
+  <div class="foot">UTrucking AI Phone Assistant</div><div class="pnum">5</div>
+</section>
+
+<section class="slide">
+  <div class="accentbar"></div>
+  <div class="eyebrow">Trust &amp; Privacy</div>
+  <h2>Built to protect student data</h2>
+  <ul class="big">
+    <li>Confirms identity before sharing anything — the caller's name <em>plus</em> a second detail.</li>
+    <li>Never reveals one student's information to another, even on a close name match.</li>
+    <li>Safety guardrails keep it on-task and on-brand.</li>
+    <li>Stress-tested against wrong-name and impostor scenarios.</li>
+  </ul>
+  <div class="foot">UTrucking AI Phone Assistant</div><div class="pnum">6</div>
+</section>
+
+<section class="slide">
+  <div class="accentbar"></div>
+  <div class="eyebrow">Quality</div>
+  <h2>Tested, not just built</h2>
+  <div class="stats">
+    <div class="stat"><div class="n">10/10</div><div class="l">conversation scenarios passed</div></div>
+    <div class="stat"><div class="n">0</div><div class="l">wrong-student matches on garbled names</div></div>
+    <div class="stat"><div class="n">1</div><div class="l">real phone call, start to finish</div></div>
+    <div class="stat"><div class="n">✓</div><div class="l">identity check blocks impostors</div></div>
+  </div>
+  <div class="lead">Behavior was validated by replaying full conversations against the live assistant, plus a name-matching audit across the entire student roster. <strong>A full QA log is available.</strong></div>
+  <div class="foot">UTrucking AI Phone Assistant</div><div class="pnum">7</div>
+</section>
+
+<section class="slide">
+  <div class="accentbar"></div>
+  <div class="eyebrow">Roadmap</div>
+  <h2>From answering questions to doing the work</h2>
+  <div class="cols">
+    <div class="col today"><h3>Today</h3><ul>
+      <li>Order lookup by name</li><li>Privacy verification</li><li>Pricing &amp; service Q&amp;A</li><li>Transfer to the team</li>
+    </ul></div>
+    <div class="col next"><h3>Next</h3><ul>
+      <li>Schedule / reschedule / cancel a pickup</li><li>Recognize callers by phone number</li><li>Message &amp; callback capture</li>
+    </ul></div>
+    <div class="col later"><h3>Later</h3><ul>
+      <li>New sign-ups on the call</li><li>Text confirmations &amp; links</li><li>Spanish for parents</li><li>Reminder calls</li>
+    </ul></div>
+  </div>
+  <div class="foot">UTrucking AI Phone Assistant</div><div class="pnum">8</div>
+</section>
+
+<section class="slide">
+  <div class="accentbar"></div>
+  <div class="eyebrow">The Impact</div>
+  <h2>What this means for UTrucking</h2>
+  <ul class="big">
+    <li>Offloads the repetitive calls that tie up the front desk.</li>
+    <li>Scales instantly at peak season — no hold times, no missed calls.</li>
+    <li>Consistent, accurate answers, every single time.</li>
+    <li>Frees the team for the work that actually needs a human.</li>
+  </ul>
+  <div class="foot">UTrucking AI Phone Assistant</div><div class="pnum">9</div>
+</section>
+
+<section class="slide title">
+  <div class="accentbar"></div>
+  <div style="margin-top:1.5in">
+    <div class="eyebrow">Next Step</div>
+    <h1>Ready to pilot</h1>
+    <div class="sub">The assistant is live and tested in our system. The next step is a short pilot on a real phone line — measuring calls handled, questions answered, and staff time saved.</div>
+  </div>
+  <div class="foot">University Trucking · Confidential · July 2026</div>
+</section>
+
+</body>
+</html>

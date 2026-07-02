@@ -1,0 +1,109 @@
+digraph UTrucking {
+  labelloc="t";
+  label="UTrucking Voice Agent  —  Conversation Flow Map (Retell, v33)";
+  fontname="Helvetica-Bold"; fontsize=20;
+  rankdir=TB;
+  nodesep=0.45; ranksep=0.55;
+  bgcolor="white";
+  node [fontname="Helvetica", fontsize=11, margin="0.14,0.09"];
+  edge [fontname="Helvetica", fontsize=9, color="#555555"];
+
+  /* ---------- Start ---------- */
+  start   [label="CALL STARTS\nAgent greeting:\n\"Thank you for calling UTrucking,\nhow can I help you today?\"", shape=box, style="rounded,filled", fillcolor="#2E7D32", fontcolor="white"];
+  intent  [label="What does the caller want?", shape=diamond, style="filled", fillcolor="#FFF3CD", height=1.2];
+
+  /* ---------- Order lookup branch ---------- */
+  hasname [label="Do we already\nhave their name?", shape=diamond, style=filled, fillcolor="#FFF3CD"];
+  askname [label="Agent: \"Sure, can I get your\nfirst and last name?\"\n(NEVER call the tool without a real name)", shape=box, style="rounded,filled", fillcolor="#E3F2FD"];
+  lookup  [label="TOOL  lookup_student(name_heard)\nAgent: \"Let me pull that up, one moment\"", shape=box, style="filled", fillcolor="#D1C4E9"];
+  status  [label="Tool returns \"status\"", shape=diamond, style=filled, fillcolor="#FFF3CD", height=1.3];
+
+  /* found */
+  gate     [label="IDENTITY GATE  (privacy)\nAgent: \"I've got an order under\n{confirmed_name} - is that you?\"\nNO order details revealed yet", shape=box, style="rounded,filled", fillcolor="#FFCDD2"];
+  confirmq [label="Caller confirms\nit is them?", shape=diamond, style=filled, fillcolor="#FFF3CD"];
+  menu     [label="Agent offers the menu of available_fields:\n\"status, pickup location, date & time,\nitems, or dispatch info?\"\n(NO field dump)", shape=box, style="rounded,filled", fillcolor="#E3F2FD"];
+  onefield [label="Caller asks ONE thing  ->  Agent answers\nONLY that field in one short sentence,\nthen \"Anything else?\"", shape=box, style="rounded,filled", fillcolor="#E3F2FD"];
+  spell1   [label="Agent: \"Sorry about that -\ncan you spell your last name?\"", shape=box, style="rounded,filled", fillcolor="#E3F2FD"];
+
+  /* confirm */
+  suggest  [label="Agent: \"I found a couple of matches -\ndid you mean X, Y, or Z?\"", shape=box, style="rounded,filled", fillcolor="#E3F2FD"];
+  pick     [label="Caller picks the correct name", shape=box, style=filled, fillcolor="#F5F5F5"];
+
+  /* not_found */
+  spell2   [label="Agent: \"I couldn't find that -\ncould you spell your last name?\"\n(ask only ONCE)", shape=box, style="rounded,filled", fillcolor="#E3F2FD"];
+  refound  [label="lookup_student (retry)\nFound this time?", shape=diamond, style=filled, fillcolor="#FFF3CD"];
+
+  /* error */
+  errmsg   [label="Agent apologizes:\n\"Trouble reaching records\"", shape=box, style="rounded,filled", fillcolor="#E3F2FD"];
+
+  /* ---------- General questions branch ---------- */
+  faq      [label="Agent answers briefly from the\nKnowledge Base (services, pricing, FAQ)\n+ offers phone / website", shape=box, style="rounded,filled", fillcolor="#E3F2FD"];
+
+  /* ---------- Anything else ---------- */
+  anymore  [label="Anything else?", shape=diamond, style=filled, fillcolor="#FFF3CD"];
+
+  /* ---------- Transfer / End ---------- */
+  transfer    [label="TOOL  transfer_to_office\n(cold transfer -> 314-266-8878)", shape=box, style="filled", fillcolor="#D1C4E9"];
+  endtransfer [label="CALL TRANSFERRED to team", shape=box, style="rounded,filled", fillcolor="#C62828", fontcolor="white"];
+  closing     [label="Agent closing:\n\"Thanks for calling UTrucking,\nhave a great day!\"", shape=box, style="rounded,filled", fillcolor="#E3F2FD"];
+  endcall     [label="TOOL  end_call", shape=box, style="filled", fillcolor="#D1C4E9"];
+  done        [label="CALL ENDS", shape=box, style="rounded,filled", fillcolor="#C62828", fontcolor="white"];
+
+  /* ---------- Edges ---------- */
+  start -> intent;
+  intent -> hasname  [label="order / storage / items /\npickup / delivery / \"check on\""];
+  intent -> faq      [label="general question\n(services, pricing, FAQ)"];
+  intent -> transfer [label="\"talk to a person\" /\ncannot help"];
+  intent -> closing  [label="\"bye\" / \"that's all\""];
+
+  hasname -> askname [label="no"];
+  hasname -> lookup  [label="yes"];
+  askname -> lookup  [label="caller says name"];
+
+  lookup -> status;
+  status -> gate    [label="found"];
+  status -> suggest [label="confirm"];
+  status -> spell2  [label="not_found"];
+  status -> errmsg  [label="error"];
+
+  gate -> confirmq;
+  confirmq -> menu   [label="yes"];
+  confirmq -> spell1 [label="no / not me"];
+  spell1 -> lookup   [label="re-lookup"];
+  menu -> onefield;
+  onefield -> anymore;
+
+  suggest -> pick;
+  pick -> lookup [label="re-lookup"];
+
+  spell2 -> refound;
+  refound -> gate     [label="yes"];
+  refound -> transfer [label="no (still not found)"];
+
+  errmsg -> transfer;
+  faq -> anymore;
+
+  anymore -> intent  [label="yes, another topic"];
+  anymore -> closing [label="no"];
+
+  transfer -> endtransfer;
+  closing -> endcall;
+  endcall -> done;
+
+  /* ---------- Legend ---------- */
+  subgraph cluster_legend {
+    label="Legend, Tools & Data";
+    fontname="Helvetica-Bold"; fontsize=13; style="rounded"; color="#999999"; margin=12;
+    legend [shape=plaintext, fillcolor="white", label=<
+      <TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="6">
+        <TR><TD BGCOLOR="#2E7D32"><FONT COLOR="white">Start</FONT></TD><TD BGCOLOR="#E3F2FD">Agent speaks</TD><TD BGCOLOR="#F5F5F5">Caller speaks</TD></TR>
+        <TR><TD BGCOLOR="#FFF3CD">Decision</TD><TD BGCOLOR="#D1C4E9">Tool / function call</TD><TD BGCOLOR="#FFCDD2">Privacy / identity gate</TD></TR>
+        <TR><TD BGCOLOR="#C62828"><FONT COLOR="white">Call ends</FONT></TD><TD COLSPAN="2">Arrows = transitions (labels = trigger)</TD></TR>
+        <TR><TD COLSPAN="3" BGCOLOR="#FAFAFA"><B>3 tools:</B> lookup_student (find order by name) &#183; transfer_to_office (cold transfer to 314-266-8878) &#183; end_call</TD></TR>
+        <TR><TD COLSPAN="3" BGCOLOR="#FAFAFA"><B>Data:</B> lookup_student reads TWO live Google Sheets (Dispatch + Service) and fuzzy-matches the spoken name; returns status = found / confirm / not_found / error</TD></TR>
+        <TR><TD COLSPAN="3" BGCOLOR="#FAFAFA"><B>Field mapping:</B> status&#8594;order_status &#183; location&#8594;building+room &#183; date/time&#8594;date+time_slot &#183; items&#8594;items_list/boxes/product &#183; dispatch&#8594;dispatch_status</TD></TR>
+        <TR><TD COLSPAN="3" BGCOLOR="#FFF9C4"><B>Guardrails:</B> never reveal details before identity is confirmed &#183; answer ONE field per turn &#183; never call the tool without a real spoken name</TD></TR>
+      </TABLE>
+    >];
+  }
+}
