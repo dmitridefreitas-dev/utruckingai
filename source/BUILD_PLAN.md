@@ -70,14 +70,14 @@ Not wired yet, on purpose — wiring it now would cause problems, not progress:
 
 **Unblock sequence:** get the SMS number + Twilio keys **and** set up the Google service account → then wire web assistant (with identity gate) + SMS + booking write-back together (~1 week).
 
-> 📄 **Google service-account setup is ready to go** — the free, ~10-minute steps are written up in **`SETUP_GOOGLE_SERVICE_ACCOUNT.md`**. You can do that setup anytime; the write-back code stays **dormant (not wired)** until you send the SMS number, then I plug it all in at once.
+> 📄 **Booking write-back setup is ready to go** — a free, ~5-minute **Google Apps Script** method (no Google Cloud, no service account, no billing) is written up in **`SETUP_BOOKING_WRITEBACK.md`**. Do it anytime; the write-back code stays **dormant (not wired)** until you send the SMS number, then I plug it all in at once. Env vars it produces: `SHEETS_WEBAPP_URL`, `SHEETS_WEBAPP_SECRET`.
 
 ### Environment variables to add in Render (Service → Environment)
 | Variable | For | Notes |
 |---|---|---|
 | `GEMINI_API_KEY` | Photo-to-quote (`/photo_quote`) | **Free** at aistudio.google.com. Optional `VISION_PROVIDER=gemini` (default). This is the only one needed now. |
 | `TWILIO_ACCOUNT_SID` · `TWILIO_AUTH_TOKEN` · `TWILIO_FROM` | SMS (reminders, texts, pay-links) | for the Wave B/C SMS tools |
-| `GOOGLE_SERVICE_ACCOUNT_JSON` | Booking + invoice write-back | needs edit access to the sheets |
+| `SHEETS_WEBAPP_URL` · `SHEETS_WEBAPP_SECRET` | Booking + invoice write-back | free Google Apps Script web app — see `SETUP_BOOKING_WRITEBACK.md` |
 | `STRIPE_API_KEY` | Card pay-links | payment chaser |
 
 ### Accounts / keys for the external-service parts (build code ready, you provide the account)
@@ -86,7 +86,7 @@ Not wired yet, on purpose — wiring it now would cause problems, not progress:
 | SMS (reminders, web+SMS assistant, payment chaser) | **Twilio** account + a number + auth token | ~$1–2/mo number + ~$0.0079/SMS |
 | Real inbound phone line for the agent | **Retell** phone number (or port Twilio) | ~$1–3/mo + per-min usage |
 | Photo-to-quote / damage vision | **Anthropic API key** (Claude vision) | usage-based |
-| Booking write-back + invoice write | **Google service account** JSON (edit access to the sheets) *or* a small Postgres DB | free (service acct) |
+| Booking write-back + invoice write | A free **Google Apps Script** web app on the sheet (or a service account / small DB) | **free** |
 | Payment links | **Stripe** account + API key | per-transaction |
 
 ### 🔒 Security — do soon
