@@ -57,9 +57,18 @@ Live ops dashboard · demand forecast · ask-your-data staff copilot · fall ret
 - **Voice agent updated & published (v34)** — it now calls `get_quote` and `check_availability` on calls.
 - Crew capacity set from your numbers (peak ~6, high 8 → 3 → 2). `JOBS_PER_CREW = 15` in `engines.py` — tune that one number if per-crew throughput differs.
 - **NEW — customer estimate page** `GET /estimate` — a self-serve web page where a customer uploads a photo *or* types items and gets an instant price. Pushed in `b3852a6`.
-- **NEW — hardening (commit `8d0d831`):** quote parser now handles number-words to 99 + "a dozen" and never drops an item (bare item = qty 1); `/photo_quote` moves the AI key into a request header and redacts it from errors (was leaking on a public endpoint); unreadable dates return a friendly re-ask.
+- **NEW — hardening + catalog (through commit `180de48`):** quote parser handles number-words to 99 + "a dozen" and never drops an item (bare item = qty 1); ~25 synonyms added (sofa→couch, bicycle→bike…); unpriceable items are **surfaced** as `unmatched` instead of hidden; price book **seeded with common student items** (monitor, printer, computer, fan, speaker, nightstand, table, filing cabinet, futon, wardrobe, crate, toolbox — recorded history still wins). `/photo_quote` now uses **`gemini-2.5-flash`** (2.0-flash's free quota was 429ing) with the key in a header + redacted from errors.
 
-> ⏳ **One action for you:** these last two commits (`b3852a6`, `8d0d831`) are pushed but **not deployed** — click **"Deploy latest commit"** in Render to activate `/estimate`, the key-leak fix, and the parser fix. (Render auto-deploy is off.)
+> ⏳ **One action for you:** everything through commit `180de48` is pushed but **not deployed** — click **"Deploy latest commit"** in Render to activate `/estimate`, the photo-quote fix (2.5-flash), the parser fixes, and the new catalog items. (Render auto-deploy is off.)
+
+### ⏸ Deferred today — Web + SMS booking assistant (deliberate)
+Not wired yet, on purpose — wiring it now would cause problems, not progress:
+- **SMS** can't send or receive anything without the **$20 Retell/Twilio number + Twilio credentials** — a webhook now would be dead, untestable code.
+- **"Booking"** means *writing* to the sheet, which needs the free **Google service account** (not set up yet). Without it, an assistant can only quote/check availability — it can't actually book.
+- **Order lookups on a public web page would leak customer PII** — the voice agent has an identity gate for exactly this reason. A web assistant needs that gate built first.
+- The safe, no-account slice — **instant web quotes** — already ships as the `/estimate` page.
+
+**Unblock sequence:** get the SMS number + Twilio keys **and** set up the Google service account → then wire web assistant (with identity gate) + SMS + booking write-back together (~1 week).
 
 ### Environment variables to add in Render (Service → Environment)
 | Variable | For | Notes |
