@@ -70,6 +70,8 @@ Not wired yet, on purpose — wiring it now would cause problems, not progress:
 
 **Unblock sequence:** get the SMS number + Twilio keys **and** set up the Google service account → then wire web assistant (with identity gate) + SMS + booking write-back together (~1 week).
 
+> 📄 **Google service-account setup is ready to go** — the free, ~10-minute steps are written up in **`SETUP_GOOGLE_SERVICE_ACCOUNT.md`**. You can do that setup anytime; the write-back code stays **dormant (not wired)** until you send the SMS number, then I plug it all in at once.
+
 ### Environment variables to add in Render (Service → Environment)
 | Variable | For | Notes |
 |---|---|---|
