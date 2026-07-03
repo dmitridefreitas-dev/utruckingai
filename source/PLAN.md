@@ -1,6 +1,6 @@
 # UTrucking AI Phone Assistant — Plan, Progress & Roadmap
 
-**Last updated:** 2026-07-02 · **Live agent:** v34 · **Backend:** latest pushed (`8d0d831`; one-click Render deploy activates the newest tools)
+**Last updated:** 2026-07-03 · **Live agent:** v34 · **Backend:** latest pushed (`691d299`; one-click Render deploy activates the newest tools)
 
 > **How to read this.** Four parts, in order:
 > **1 — What's been done** (built, tested, live). **2 — Where the value is added** (in dollars, from our own data). **3 — What's next** (the roadmap). **4 — What's required** to get there (a phone number, SMS, accounts, and their costs).
@@ -31,11 +31,17 @@ The assistant is **live and fully tested**. It answers calls in a warm, natural 
 
 | Capability | Status |
 |---|---|
+| **One front-facing dashboard** — all tools behind five cards (chat, voice, estimate, ask-your-data, insights); Back button / Esc to return | 🟢 Built — deploy to go live |
 | **Customer self-serve estimate page** — snap a photo *or* type items → instant price | 🟢 Built — deploy to go live |
 | **Photo-to-quote (AI vision)** — detects items in a photo and prices them (free Gemini tier) | 🟢 Built — deploy to go live |
 | **Web chat assistant (SMS preview)** — quotes, pickup dates & identity-verified order lookup; no phone number needed | 🟢 Built — testable now |
+| **Browser voice assistant** — same brain, spoken in the browser (free, no Retell minutes) | 🟢 Built — deploy to go live |
+| **Business insights dashboard** — live revenue, top items, upsell pairs, demand, funnel, data-quality scorecard | 🟢 Built — deploy to go live |
+| **Ask-your-data staff copilot** — plain-English questions on aggregate stats (refuses individual-customer data) | 🟢 Built — deploy to go live |
 | **Billing-leakage audit** — flags $0 / missing-invoice / missing-order rows | 🟢 Built |
 | **Dispatch / route planner** — clusters a day's pickups by building and splits crews | 🟢 Built |
+
+> **Privacy note (identity gate).** Order lookups verify a **second detail** — the caller's building or the last-4 of their phone — before any personal data is shared, on both the phone line and the web chat. This works today with **no phone number**. **Future option:** once a texting number is live, this gate can be upgraded to a **one-time SMS code** (the strongest identity check) with no change to the rest of the flow.
 
 ### Documentation
 Flow maps, connections inventory, QA log, executive deck, and a full **Data & Revenue Audit** — all in this report.
@@ -83,8 +89,8 @@ The theme: turn the assistant from **answering** into **doing**. We build in thr
 | **Payment chaser** | SMS follow-up with a pay link — faster cash |
 | **Damage / condition vision docs** | Auto-tags item condition from photos already taken — dispute protection + a protection-plan upsell |
 
-### Wave D · See & predict  🔭 logged for later
-Live ops dashboard · demand forecast (per-building, keyed to the academic calendar) · "ask-your-data" staff copilot · fall **return-season** automation (Rental Returns = 25% of volume).
+### Wave D · See & predict  🟢 first tools built
+The **live ops dashboard** (Business insights) and the **"ask-your-data" staff copilot** are **built** — they read the live sheets and surface revenue, demand, upsell pairs, the completion funnel and a data-quality scorecard, and answer plain-English questions on aggregate stats. Still logged for later in this wave: **demand forecasting** (per-building, keyed to the academic calendar) and fall **return-season** automation (Rental Returns = 25% of volume).
 
 ### The four moves the AI caller itself will run
 All four unlock from the **same booking capability** (Wave B) — build it once, the assistant executes all of them:
