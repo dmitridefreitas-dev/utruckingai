@@ -1,7 +1,7 @@
 # UTrucking AI Phone Assistant — QA & Testing Log
 
-**Prepared:** 2026-07-02
-**Agent:** Utrucking Agent (Retell AI) · versions v29 → v34
+**Prepared:** 2026-07-02 · **last updated** 2026-07-03
+**Agent:** Utrucking Agent (Retell AI) · versions v29 → v35
 **How tested:** scripted conversations run against the *live* agent via Retell's playground API, one real phone call, direct probes of the lookup backend + Google Sheets, and edge-case audits of the new business endpoints (`/quote`, `/availability`, `/dispatch_plan`, `/billing_audit`, `/photo_quote`) and the customer estimate page.
 
 ---
@@ -209,6 +209,26 @@ The **Ask-your-data copilot** was also upgraded after refusing a pricing questio
 
 ### Bug found and fixed this pass
 **A six-figure quantity produced a $22M estimate.** *"quote 999999 boxes"* on the public estimate page returned **$21,999,978** — no sanity cap. **Fixed:** every line item is now clamped to **1–200**; anything larger is capped with a *"call (314) 266-8878 for a bulk quote"* note, and zero/negative quantities clamp to at least 1 (never a $0 or dropped line). Re-tested: the same input now returns a capped **$4,400** with the bulk-quote note. The "never silently drop an item" invariant was re-verified — a five-item order (couch, dresser, bike, mini fridge, 12 boxes) prices all five ($404).
+
+### Round 5 (four new capabilities A/B/C/D + audit, 2026-07-03)
+Four features were built, then hardened through a build → audit → test → fix loop and verified against the **live** sheets (1,685 dispatch / 654 service rows):
+
+| # | Feature | What it does | Verified |
+|---|---------|--------------|----------|
+| **A** | **Ops Command Center** (`/ops`) | Staff page: pick a day → greedy crew-split groups buildings into balanced routes with printable run sheets | Live peak day (5/7) → **334 stops, 40 buildings, 6 crews (~56 each), stop-count preserved**. Rendered & screenshot-checked; matches the Orbit design |
+| **B** | **Next-season demand forecast** | `compute_metrics` projects the peak window (orders + crews needed), move-out window share, and the August return season; surfaced as an Insights **planner** card | Live: peak day **334 orders → 23 crews needed vs 6 modeled**; return season **220 orders (13%)**. Card renders with bars |
+| **C** | **Hardening pack** | `API_SECRET` staff-key gate on the PII/ops endpoints, a per-IP verification limiter (15 fails/hr) on top of the per-name lockout, and a **local** nightly sheet-backup script (data stays off the public repos) | Lockout suite green; IP limiter unit-tested; backup script + its Sheet IDs added to `.gitignore` |
+| **D** | **Repeat-customer multi-order lookup** | A caller with several orders (storage + return + rental…) is asked *which one* and disambiguates by order #, service type, or month before the identity gate | Live: a real **5-order** customer correctly triggers the choice prompt and resolves by hint; full chat flow (intent → name → order → verify → reveal) passes end-to-end |
+
+**Audit fixes surfaced this round:**
+- **Machine-readable items in the order reveal** — verified orders read back items as `UTrucking Box (Amount: 22.00 USD, Quantity: 4)`. Now rendered as **`UTrucking Box x4, Plastic Container x3`** for phone/chat/voice.
+- **Dashboard copy/pluralization** — subtitle said "Five tools" (now six with Ops); the ops view printed "1 stops". Both fixed.
+- **Aggregate-only proof for the public Insights page** — the `/insights` payload was asserted to contain **no 10-digit phone runs and none of the roster's student names** before it renders, confirming the public dashboard leaks no PII.
+
+**Suites after this round: 36/36 parser+AI-map · 15/15 adversarial brain · 80/80 gauntlet · 35/35 new A/B/D unit tests · live A/B/C/D smoke test green.** Deployed backend pushed; portfolio copy re-synced with the live-Sheet-ID redaction assertion passing.
+
+### Open security item (owner action)
+The PII/ops endpoints (`/lookup_student`, `/dispatch_plan`, `/billing_audit`, `/debug_sheets`) enforce a staff key **only when `API_SECRET` is set** in the Render environment — it is currently **unset** (deliberate safe-rollout default), so they are reachable without a key. The gate mechanism is built and tested; activating it is a coordinated owner step (set `API_SECRET`, and add the same value as an `x-utrucking-key` header on the Retell `lookup_student` tool so the phone agent keeps working). See `CONNECTIONS.md → Security activation runbook`. Separately, the Google Sheets are web-published as CSV and their IDs live in the (public) deployed-backend repo — fine for the free architecture, but means locking down the data requires making the sheets private + an authenticated fetch, an owner decision noted for later.
 
 ---
 

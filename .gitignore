@@ -8,6 +8,8 @@ TEST_TRANSCRIPT.pdf
 source/CONNECTIONS.md
 CONNECTIONS.pdf
 source/analytics/refresh_data.ps1
+source/analytics/backup_sheets.ps1
+source/analytics/backups/
 UTrucking_AI_Assistant_Full_Report.pdf
 
 # ── misc ──

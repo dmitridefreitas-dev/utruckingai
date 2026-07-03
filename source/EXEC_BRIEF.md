@@ -14,10 +14,11 @@ A **live AI phone assistant** plus a **data-backed plan** to automate the front 
 - **Backend fixed** — invoice/item data that was showing empty now loads (654 records); wrong-person matches tightened.
 
 ## 🟢 Just built (one deploy from live)
-- **One dashboard, five tools** — a single link opens chat, voice, estimate, ask-your-data and business insights, in a polished branded interface that works on any phone.
+- **One dashboard, six tools** — a single link opens chat, voice, estimate, ask-your-data, business insights and a staff ops center, in a polished branded interface that works on any phone.
 - **Self-serve estimate page** — a customer photographs their pile *and/or* types what they have and gets a price on the spot. Understands typos, word-quantities and **any item** — things not on the price list are AI-matched to the closest priced item, shown transparently (*"1× Skateboard — you said 'baseball bat'"*). Free AI vision, no subscription.
 - **Web chat + browser voice** — the live phone agent's exact brain, testable by text or voice for **free** (no call minutes), with the same identity-verified order lookup.
 - **Business insights + ask-your-data** — a live dashboard of revenue/demand/data-quality, and a plain-English analyst that answers questions like *"how much should I raise prices?"* with concrete numbers.
+- **Ops command center + demand forecast** — staff pick a day and get balanced crew routes with printable run sheets, plus a next-season forecast that projects the peak week and the crews it needs (the live peak day runs **334 pickups**). Repeat customers with multiple orders are now handled cleanly on the phone.
 
 ## 📊 The numbers that matter
 | | |

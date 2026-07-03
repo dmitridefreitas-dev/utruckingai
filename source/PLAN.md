@@ -31,7 +31,7 @@ The assistant is **live and fully tested**. It answers calls in a warm, natural 
 
 | Capability | Status |
 |---|---|
-| **One front-facing dashboard** — all tools behind five cards (chat, voice, estimate, ask-your-data, insights); Back button / Esc to return. Redesigned: animated starfield, orbit hub, glass cards, one brand family across every tool page, fully mobile-checked | 🟢 Built — deploy to go live |
+| **One front-facing dashboard** — all tools behind six cards (chat, voice, estimate, ask-your-data, insights, ops); Back button / Esc to return. Redesigned: animated starfield, orbit hub, glass cards, one brand family across every tool page, fully mobile-checked | 🟢 Built — deploy to go live |
 | **Estimate: photo + description together** — typed counts override the photo, extra typed items are added, every line shows its source; typo-tolerant parser with visible closest-match ("you said X") | 🟢 Built — deploy to go live |
 | **Any-item pricing (AI matching)** — items not on the price list are matched to the closest priced item and shown transparently; verified on an 80-item student-goods gauntlet (80/80, nothing dropped). AI calls ride a 3-model fallback chain so free-tier rate limits don't take tools down | 🟢 Built — deploy to go live |
 | **Customer self-serve estimate page** — snap a photo *or* type items → instant price | 🟢 Built — deploy to go live |
@@ -42,6 +42,9 @@ The assistant is **live and fully tested**. It answers calls in a warm, natural 
 | **Ask-your-data staff copilot** — plain-English questions on aggregate stats (refuses individual-customer data) | 🟢 Built — deploy to go live |
 | **Billing-leakage audit** — flags $0 / missing-invoice / missing-order rows | 🟢 Built |
 | **Dispatch / route planner** — clusters a day's pickups by building and splits crews | 🟢 Built |
+| **Ops Command Center** — staff page: pick a day → balanced crew routes + printable run sheets (staff-key-gated) | 🟢 Built — deploy to go live |
+| **Next-season demand forecast** — projects the peak window, crews needed, and the fall return season from this year's shape; shown as an Insights planner card | 🟢 Built — deploy to go live |
+| **Repeat-customer multi-order lookup** — a caller with several orders picks which one (by order #, service, or month) before the identity gate | 🟢 Built — deploy to go live |
 
 > **Privacy note (identity gate).** Order lookups verify a **second detail** — the caller's building or the last-4 of their phone — before any personal data is shared, on both the phone line and the web chat. This works today with **no phone number**. **Future option:** once a texting number is live, this gate can be upgraded to a **one-time SMS code** (the strongest identity check) with no change to the rest of the flow.
 
@@ -91,8 +94,8 @@ The theme: turn the assistant from **answering** into **doing**. We build in thr
 | **Payment chaser** | SMS follow-up with a pay link — faster cash |
 | **Damage / condition vision docs** | Auto-tags item condition from photos already taken — dispute protection + a protection-plan upsell |
 
-### Wave D · See & predict  🟢 first tools built
-The **live ops dashboard** (Business insights) and the **"ask-your-data" staff copilot** are **built** — they read the live sheets and surface revenue, demand, upsell pairs, the completion funnel and a data-quality scorecard, and answer plain-English questions on aggregate stats. Still logged for later in this wave: **demand forecasting** (per-building, keyed to the academic calendar) and fall **return-season** automation (Rental Returns = 25% of volume).
+### Wave D · See & predict  🟢 built
+The **live ops dashboard** (Business insights), the **"ask-your-data" staff copilot**, the **Ops Command Center** (daily crew routing + run sheets), and a **next-season demand forecast** are all **built and verified against the live sheets**. The forecast projects the peak window and the crews it needs (live: the peak day runs **334 pickups → ~23 crews' worth of work**), the move-out-window share, and the fall **return season** (Rental Returns ≈ 13–25% of volume). Repeat customers with several orders are now disambiguated before the identity gate. Still logged for later: fall return-season **outbound automation** ("want your stuff back?" SMS), which needs booking write-back + a texting number.
 
 ### The four moves the AI caller itself will run
 All four unlock from the **same booking capability** (Wave B) — build it once, the assistant executes all of them:

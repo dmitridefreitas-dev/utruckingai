@@ -13,8 +13,10 @@
 | Quote engine (A) | ✅ built + unit-tested (100% invoice reproduction) |
 | Availability/scheduler engine (B) | ✅ built + tested (correct peak-day steering) |
 | Billing/leakage guard (C) | ✅ built + tested (exact audit counts) |
-| Backend wiring | ✅ `/quote`, `/availability`, `/billing_audit` + MCP tools `get_quote`, `check_availability` — pushed to `main` (commit `4be7802`) |
-| **Live?** | ⏳ **No — needs a manual Render deploy** (auto-deploy is off) |
+| Wave D — insights, `/ask`, `/ops`, forecast, multi-order lookup | ✅ built + tested against live sheets (2026-07-03) |
+| Hardening — staff-key gate, per-IP verify limiter, local sheet backup | ✅ built + tested (gate dormant until `API_SECRET` is set — see CONNECTIONS §5) |
+| Backend wiring | ✅ all endpoints + MCP tools pushed to `main` (commit `7e11720`) |
+| **Live?** | ⏳ **Push done — needs a manual Render "Deploy latest commit"** (auto-deploy is off) |
 
 Engines live in `backend/engines.py` (pure logic, no I/O) so they're testable and reused by `main.py`.
 
@@ -45,8 +47,13 @@ Engines live in `backend/engines.py` (pure logic, no I/O) so they're testable an
 3. **Payment chaser** — Twilio SMS + Stripe pay-link.
 4. **Damage / condition vision docs** — Claude vision over the item photos already collected.
 
-## Wave D — later
-Live ops dashboard · demand forecast · ask-your-data staff copilot · fall return-season automation.
+## Wave D — see & predict  ✅ built (2026-07-03)
+1. **Live business dashboard** ✅ `/insights` + `/insights_api` (revenue, top items, upsell pairs, funnel, per-building demand, repeat-rate, data-quality).
+2. **Ask-your-data copilot** ✅ `/ask` — aggregate-only, refuses individual-customer PII.
+3. **Ops Command Center** ✅ `/ops` — greedy crew-split over `/dispatch_plan` with printable run sheets (staff-key-gated when `API_SECRET` is set).
+4. **Next-season demand forecast** ✅ in `compute_metrics` — peak window + crews-needed, move-out-window share, August return season; surfaced as the Insights **planner** card.
+5. **Repeat-customer multi-order lookup** ✅ callers with several orders disambiguate by order #, service, or month before the identity gate.
+6. Fall return-season automation (SMS "want your stuff back?") — still later; needs booking write-back + Twilio.
 
 ---
 
@@ -98,3 +105,4 @@ Not wired yet, on purpose — wiring it now would cause problems, not progress:
 ### 🔒 Security — do soon
 - **`utrucking-mcp` is a PUBLIC repo and contains the live Google Sheet IDs**, and the sheets are shared *"anyone with the link."* Anyone who finds the repo can read customer names/phones.
 - **Recommended:** make `utrucking-mcp` **private**, and/or restrict the sheets to a **service account** instead of public-link. (The portfolio repo `utruckingai` already has these IDs redacted/excluded.)
+- **Staff-key gate is built but dormant.** The PII/ops endpoints (`/lookup_student`, `/dispatch_plan`, `/billing_audit`, `/debug_sheets`) enforce an `x-utrucking-key` header **only when `API_SECRET` is set** in Render (currently unset = open). Turning it on is a 3-step coordinated change — follow **CONNECTIONS.md → Security activation runbook** (set the env var + add the header to the Retell tool so voice keeps working; the `/ops` page already prompts staff for the key). A per-IP verification limiter (15 fails/hr) and the existing per-name lockout (5 fails/15 min) are already active regardless.
