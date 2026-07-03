@@ -1,6 +1,8 @@
 # ── Real customer data — NEVER publish (names, phones, addresses) ──
 source/analytics/data/
 source/utrucking-test-calls.txt
+source/TEST_TRANSCRIPT.md
+TEST_TRANSCRIPT.pdf
 
 # ── Internal infrastructure identifiers (live Google Sheet IDs / URLs) ──
 source/CONNECTIONS.md

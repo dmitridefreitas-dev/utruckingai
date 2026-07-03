@@ -13,6 +13,7 @@ sections = [
     ("Reference: Agent Flow (Conversation Map)", "UTrucking_Voice_Agent_Flow.pdf"),
     ("Reference: Connections & Infrastructure", "CONNECTIONS.pdf"),
     ("Reference: QA & Testing Log", "TEST_LOG.pdf"),
+    ("Reference: Live Test Transcript (private)", "TEST_TRANSCRIPT.pdf"),
     ("Visual Recap - Executive Slides", "UTrucking_Executive_Deck.pdf"),
 ]
 
