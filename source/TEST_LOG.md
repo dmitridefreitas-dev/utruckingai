@@ -192,6 +192,19 @@ A second live test — *"two utrucing box, 3 bed, 1 fridghe, 1 skateboard, 1 bas
 
 **Suites after this round: 36/36 parser + AI-map · 13/13 adversarial brain · 7/7 photo+text merge · 80/80 item gauntlet.**
 
+### Round 4 (self-audit, 2026-07-03)
+An unprompted audit across security, consistency and UX found and fixed five gaps:
+
+| Finding | Fix |
+|---|---|
+| **Channel inconsistency** — the estimate page and the phone line AI-matched unusual items, but the web chat said "couldn't price" | The chat brain now runs the same AI mapper and re-renders the quote — **all four channels (phone, web chat, browser voice, estimate page) price identically** |
+| **Identity gate could be brute-forced** — a script could loop building names against a target name with no limit | **Lockout added:** 5 failed verification guesses for a name = 15-minute lock, even if a later guess is right. Tested: locked flow refuses a *correct* verifier |
+| **Phone agent didn't know about the new matching** — its `get_quote` tool description predated the AI mapper | Tool description upgraded and **agent v35 published** — the phone agent now says things like *"for your baseball bat, the closest thing we price is a skateboard-size item at fifteen dollars"* |
+| Insights dashboard didn't show the new pricing levers | New **Pricing levers** card (+$1-per-item season sensitivity) |
+| Voice mode needed a mic tap per turn; bare "blanket" was wrongly unpriceable | **Hands-free voice** — the mic reopens after each spoken reply (tap to stop). Blankets price again (only *moving* blankets are supplies) |
+
+**Suites after this round: 36/36 parser + AI-map · 15/15 adversarial brain (2 new lockout cases) · 7/7 merge · 80/80 gauntlet.**
+
 The **Ask-your-data copilot** was also upgraded after refusing a pricing question: the metrics brief now carries pricing levers (unit price, units sold, revenue share, +$1 sensitivity per item), so *"How much should I raise prices?"* now answers concretely — e.g. *"raise the box $22→$24 ≈ +$5,186/season (65% of revenue)"* — while still refusing individual-customer questions.
 
 ### Bug found and fixed this pass
