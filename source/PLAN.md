@@ -1,6 +1,6 @@
 # UTrucking AI Phone Assistant — Plan, Progress & Roadmap
 
-**Last updated:** 2026-07-03 · **Live agent:** v34 · **Backend:** latest pushed (`4a198b5`; one-click Render deploy activates the newest tools)
+**Last updated:** 2026-07-03 · **Live agent:** v34 · **Backend:** latest pushed (`f4734b3`; one-click Render deploy activates the newest tools)
 
 > **How to read this.** Four parts, in order:
 > **1 — What's been done** (built, tested, live). **2 — Where the value is added** (in dollars, from our own data). **3 — What's next** (the roadmap). **4 — What's required** to get there (a phone number, SMS, accounts, and their costs).
@@ -33,6 +33,7 @@ The assistant is **live and fully tested**. It answers calls in a warm, natural 
 |---|---|
 | **One front-facing dashboard** — all tools behind five cards (chat, voice, estimate, ask-your-data, insights); Back button / Esc to return. Redesigned: animated starfield, orbit hub, glass cards, one brand family across every tool page, fully mobile-checked | 🟢 Built — deploy to go live |
 | **Estimate: photo + description together** — typed counts override the photo, extra typed items are added, every line shows its source; typo-tolerant parser with visible closest-match ("you said X") | 🟢 Built — deploy to go live |
+| **Any-item pricing (AI matching)** — items not on the price list are matched to the closest priced item and shown transparently; verified on an 80-item student-goods gauntlet (80/80, nothing dropped). AI calls ride a 3-model fallback chain so free-tier rate limits don't take tools down | 🟢 Built — deploy to go live |
 | **Customer self-serve estimate page** — snap a photo *or* type items → instant price | 🟢 Built — deploy to go live |
 | **Photo-to-quote (AI vision)** — detects items in a photo and prices them (free Gemini tier) | 🟢 Built — deploy to go live |
 | **Web chat assistant (SMS preview)** — quotes, pickup dates & identity-verified order lookup; no phone number needed | 🟢 Built — testable now |

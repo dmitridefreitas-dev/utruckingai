@@ -58,8 +58,14 @@ Live ops dashboard · demand forecast · ask-your-data staff copilot · fall ret
 - Crew capacity set from your numbers (peak ~6, high 8 → 3 → 2). `JOBS_PER_CREW = 15` in `engines.py` — tune that one number if per-crew throughput differs.
 - **NEW — customer estimate page** `GET /estimate` — a self-serve web page where a customer uploads a photo *or* types items and gets an instant price. Pushed in `b3852a6`.
 - **NEW — hardening + catalog (through commit `180de48`):** quote parser handles number-words to 99 + "a dozen" and never drops an item (bare item = qty 1); ~25 synonyms added (sofa→couch, bicycle→bike…); unpriceable items are **surfaced** as `unmatched` instead of hidden; price book **seeded with common student items** (monitor, printer, computer, fan, speaker, nightstand, table, filing cabinet, futon, wardrobe, crate, toolbox — recorded history still wins). `/photo_quote` now uses **`gemini-2.5-flash`** (2.0-flash's free quota was 429ing) with the key in a header + redacted from errors.
+- **NEW — unified dashboard + data tools (through commit `f4734b3`, 2026-07-03):**
+  - `GET /` = one branded dashboard (starfield/orbit design, mobile-checked) opening all five tools: chat, browser voice, estimate, ask-your-data, business insights. Chat + voice ARE the live phone agent's brain, hosted for free testing.
+  - `analytics.py` — revenue/demand/funnel/upsell/data-quality metrics power `GET /insights` (+`/insights_api`) and ground `POST /ask_api` (aggregate-only copilot; refuses individual-customer questions; answers pricing questions with concrete numbers).
+  - **Any-item pricing:** deterministic ladder (alias → typo-fuzzy → word containment) then an **AI second-chance mapping** that matches unlisted items ("baseball bat") to the closest catalog item and shows it on the line. 80-item student gauntlet passes 80/80, nothing silently dropped.
+  - **Rate-limit resilience:** every Gemini call walks a 3-model fallback chain (separate free-tier quota buckets) — verified live through a real 429.
+  - Estimate page accepts **photo + description together** (typed counts override the photo; text-only items are added; each line is tagged with its source).
 
-> ⏳ **One action for you:** everything through commit `180de48` is pushed but **not deployed** — click **"Deploy latest commit"** in Render to activate `/estimate`, the photo-quote fix (2.5-flash), the parser fixes, and the new catalog items. (Render auto-deploy is off.)
+> ⏳ **One action for you:** everything through commit **`f4734b3`** is pushed but **not deployed** — click **"Deploy latest commit"** in Render to activate the dashboard, the data tools, the any-item pricing and the 429 fix. (Render auto-deploy is off.)
 
 ### ⏸ Deferred today — Web + SMS booking assistant (deliberate)
 Not wired yet, on purpose — wiring it now would cause problems, not progress:
@@ -75,7 +81,7 @@ Not wired yet, on purpose — wiring it now would cause problems, not progress:
 ### Environment variables to add in Render (Service → Environment)
 | Variable | For | Notes |
 |---|---|---|
-| `GEMINI_API_KEY` | Photo-to-quote (`/photo_quote`) | **Free** at aistudio.google.com. Optional `VISION_PROVIDER=gemini` (default). This is the only one needed now. |
+| `GEMINI_API_KEY` | Photo-to-quote, ask-your-data copilot, any-item AI matching | **Free** at aistudio.google.com. Optional `VISION_PROVIDER=gemini` (default), `GEMINI_MODEL` (default `gemini-2.5-flash`; calls auto-fall back to `2.5-flash-lite` → `2.0-flash` on rate limits). This is the only one needed now. |
 | `TWILIO_ACCOUNT_SID` · `TWILIO_AUTH_TOKEN` · `TWILIO_FROM` | SMS (reminders, texts, pay-links) | for the Wave B/C SMS tools |
 | `SHEETS_WEBAPP_URL` · `SHEETS_WEBAPP_SECRET` | Booking + invoice write-back | free Google Apps Script web app — see `SETUP_BOOKING_WRITEBACK.md` |
 | `STRIPE_API_KEY` | Card pay-links | payment chaser |
