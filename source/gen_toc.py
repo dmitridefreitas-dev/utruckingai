@@ -7,6 +7,7 @@ src_dir = pathlib.Path(sys.argv[2])   # where to write temp files (source)
 sections = [
     ("Executive Brief - Start Here", "EXEC_BRIEF.pdf"),
     ("The Plan - Done, Value, Next & Required", "PLAN.pdf"),
+    ("Phone & SMS - Setup Plan", "PHONE_SMS_PLAN.pdf"),
     ("The Numbers - Data & Revenue Audit", "UTrucking_Data_Audit.pdf"),
     ("Reference: Call Journey", "UTrucking_Call_Journey.pdf"),
     ("Reference: Agent Flow (Conversation Map)", "UTrucking_Voice_Agent_Flow.pdf"),

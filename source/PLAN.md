@@ -33,6 +33,7 @@ The assistant is **live and fully tested**. It answers calls in a warm, natural 
 |---|---|
 | **Customer self-serve estimate page** — snap a photo *or* type items → instant price | 🟢 Built — deploy to go live |
 | **Photo-to-quote (AI vision)** — detects items in a photo and prices them (free Gemini tier) | 🟢 Built — deploy to go live |
+| **Web chat assistant (SMS preview)** — quotes, pickup dates & identity-verified order lookup; no phone number needed | 🟢 Built — testable now |
 | **Billing-leakage audit** — flags $0 / missing-invoice / missing-order rows | 🟢 Built |
 | **Dispatch / route planner** — clusters a day's pickups by building and splits crews | 🟢 Built |
 

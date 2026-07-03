@@ -121,6 +121,24 @@ This confirms the customer *photo → instant estimate* flow works on unseen, re
 | Auto-retry on transient `429` / `503` | The vision API briefly overloaded mid-test; a retry recovered it |
 | API key moved to a request header + redacted from errors | The public endpoint had been echoing the key on an error |
 
+### SMS-preview chat bot (`/chat`) — audit
+
+A texting-style web preview was built so the assistant can be tested with **no phone number, EIN, or registration**. It runs the **same engine brain** as the phone line — quotes, availability, and identity-gated order lookup straight from the Google Sheets — via a server-side `/chat_api`. Stress-tested with multi-turn conversations against live data:
+
+| Scenario | Result |
+|---|---|
+| Quote from free text ("quote 5 boxes and a mini fridge") | ✅ $133 itemized |
+| Specific date ("is 5/12 available?") | ✅ availability + steer |
+| Vague date ("sometime in July") | ✅ lists open July days (was looping — **fixed**) |
+| "what other days are available?" | ✅ lists real season openings (was showing a stray January date — **fixed**) |
+| "hours" | ✅ returns contact info (plural "hours" was missed — **fixed**) |
+| Order lookup + correct verification | ✅ reveals status/pickup/items after confirming building |
+| Order lookup + **wrong** verification | ✅ refuses — no data shared |
+| Fake name | ✅ "couldn't find that name" — no data shared |
+| Topic switch mid-lookup ("two monitors") | ✅ breaks out and quotes it (was hijacked as a name — **fixed**) |
+
+**Identity gate:** order lookups require the caller to confirm a second detail (building or last-4 of phone) before any personal data is shown — the same protection as the voice line, enforced server-side so PII never reaches the browser unverified.
+
 ---
 
 ## 8. Method note

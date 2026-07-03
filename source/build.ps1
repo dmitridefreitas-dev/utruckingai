@@ -32,7 +32,7 @@ if ($dot) {
 } else { Write-Output "  (Graphviz not found - skipping flow-map rebuild)" }
 
 # 2) Markdown docs -> PDF
-$docs = [ordered]@{ "EXEC_BRIEF.md"="UTrucking - Executive Brief"; "PLAN.md"="UTrucking Plan & Roadmap"; "CONNECTIONS.md"="UTrucking Connections"; "TEST_LOG.md"="UTrucking QA & Test Log" }
+$docs = [ordered]@{ "EXEC_BRIEF.md"="UTrucking - Executive Brief"; "PLAN.md"="UTrucking Plan & Roadmap"; "PHONE_SMS_PLAN.md"="UTrucking Phone & SMS Setup Plan"; "CONNECTIONS.md"="UTrucking Connections"; "TEST_LOG.md"="UTrucking QA & Test Log" }
 foreach ($md in $docs.Keys) {
   if (-not (Test-Path "$src\$md")) { continue }
   $tmp = "$src\_tmp.html"
