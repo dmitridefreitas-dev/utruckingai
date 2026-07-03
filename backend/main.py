@@ -15,7 +15,7 @@ from starlette.responses import JSONResponse, HTMLResponse
 from starlette.requests import Request
 from starlette.middleware.cors import CORSMiddleware
 from starlette.middleware.trustedhost import TrustedHostMiddleware
-from engines import build_price_book, quote as _quote_items, availability as _availability, billing_audit as _billing_audit, dispatch_plan as _dispatch_plan, open_days as _open_days, season_bounds as _season_bounds, peak_date as _peak_date
+from engines import build_price_book, quote as _quote_items, availability as _availability, billing_audit as _billing_audit, dispatch_plan as _dispatch_plan, open_days as _open_days, season_bounds as _season_bounds, peak_date as _peak_date, merge_photo_text as _merge_photo_text
 
 RENDER_URL = os.getenv("RENDER_URL", "https://utrucking-mcp.onrender.com")
 
@@ -526,7 +526,19 @@ async def photo_quote_endpoint(request: Request):
         return JSONResponse({"status": "error", "message": "Vision call failed: " + msg})
     service_rows = await fetch_csv_rows(SERVICE_CSV_URL)
     book = build_price_book(service_rows) if service_rows else {}
-    result = _quote_items([(d.get("name", ""), d.get("qty", 1)) for d in detected], book)
+    pairs = [(d.get("name", ""), d.get("qty", 1)) for d in detected]
+    extra_text = (args.get("text") or "").strip()
+    if extra_text:
+        # customer typed a clarification alongside the photo — their words win on overlap,
+        # text-only items are added, and each line is tagged with where it came from
+        merged, source_by_key = _merge_photo_text(pairs, extra_text, book)
+        result = _quote_items(merged, book)
+        for l in result.get("line_items", []):
+            src = source_by_key.get(l["item"].lower())
+            if src:
+                l["source"] = src
+    else:
+        result = _quote_items(pairs, book)
     result["detected"] = detected
     return JSONResponse(result)
 
@@ -537,12 +549,22 @@ _ESTIMATE_HTML = """<!doctype html>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>UTrucking - Instant Storage Estimate</title>
 <style>
- :root{--navy:#14335f;--orange:#f5a623;--ink:#1f2933;--mut:#5b6b7f;--line:#e3e9f2}
+ :root{--navy:#14335f;--orange:#f5a623;--ink:#1f2933;--mut:#5b6b7f;--line:#e3e9f2;--space0:#070d1a;--space1:#16305c}
  *{box-sizing:border-box} body{margin:0;font-family:'Segoe UI',system-ui,Arial,sans-serif;color:var(--ink);background:#f5f7fb}
- .bar{height:6px;background:var(--orange)}
- header{background:var(--navy);color:#fff;padding:22px 20px}
- header .ey{text-transform:uppercase;letter-spacing:.16em;font-size:11px;font-weight:700;color:var(--orange)}
- header h1{margin:4px 0 0;font-size:22px} header p{margin:6px 0 0;color:#cdd9ee;font-size:14px}
+ .bar{height:5px;background:linear-gradient(90deg,var(--orange),#ffc45e)}
+ header{background:linear-gradient(150deg,var(--space0) 0%,#122a52 65%,var(--space1) 100%);color:#fff;padding:22px 20px;position:relative;overflow:hidden}
+ header:after{content:"";position:absolute;inset:0;pointer-events:none;background-image:
+  radial-gradient(1.2px 1.2px at 12% 30%,rgba(255,255,255,.7),transparent 60%),
+  radial-gradient(1px 1px at 30% 72%,rgba(255,255,255,.5),transparent 60%),
+  radial-gradient(1.4px 1.4px at 47% 22%,rgba(255,217,149,.8),transparent 60%),
+  radial-gradient(1px 1px at 64% 62%,rgba(255,255,255,.45),transparent 60%),
+  radial-gradient(1.2px 1.2px at 80% 32%,rgba(255,255,255,.6),transparent 60%),
+  radial-gradient(1px 1px at 93% 70%,rgba(255,217,149,.6),transparent 60%)}
+ header>*{position:relative}
+ header .ey{text-transform:uppercase;letter-spacing:.28em;font-size:11px;font-weight:700;color:var(--orange)}
+ header h1{margin:4px 0 0;font-size:22px;font-weight:650} header p{margin:6px 0 0;color:#aebfda;font-size:14px}
+ .cardh{display:flex;align-items:center;gap:9px}
+ .cardh svg{width:19px;height:19px;stroke:var(--navy);fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;flex:none}
  main{max-width:640px;margin:0 auto;padding:18px 16px 60px}
  .card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:18px;margin:14px 0;box-shadow:0 1px 3px rgba(20,51,95,.06)}
  .card h2{margin:0 0 4px;font-size:16px;color:var(--navy)} .card .hint{margin:0 0 12px;color:var(--mut);font-size:13px}
@@ -565,14 +587,14 @@ _ESTIMATE_HTML = """<!doctype html>
  <h1>Instant Storage &amp; Moving Estimate</h1>
  <p>Snap a photo of your stuff or type what you have - get a price in seconds.</p></header>
 <main>
- <div class="card"><h2>&#128247; Estimate from a photo</h2>
-  <p class="hint">Take or upload one photo of your items. We detect them and price it automatically.</p>
-  <input id="photo" class="file" type="file" accept="image/*" capture="environment"></div>
- <div class="or">- or -</div>
- <div class="card"><h2>&#9000; Estimate from a description</h2>
-  <p class="hint">e.g. "five boxes, a mini fridge and two duffels" &mdash; we price boxes, fridges, duffels, TVs, desks, couches, mattresses, dressers, bikes &amp; more.</p>
-  <textarea id="items" placeholder="Tell us what you are storing..."></textarea>
-  <button class="btn" onclick="quoteText()">Get my estimate</button></div>
+ <div class="card"><h2 class=cardh><svg viewBox="0 0 24 24"><path d="M4 8h3l1.5-2h7L17 8h3v11H4z"/><circle cx="12" cy="13" r="3.4"/></svg>Photo (optional)</h2>
+  <p class="hint">Take or upload one photo of your items &mdash; we detect and price them automatically.</p>
+  <input id="photo" class="file" type="file" accept="image/*" capture="environment">
+  <p class="hint" id="photostate" style="margin:8px 0 0"></p></div>
+ <div class="card"><h2 class=cardh><svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h10M4 18h13"/></svg>Description (optional)</h2>
+  <p class="hint">e.g. "five boxes, a mini fridge and two duffels". <b>Using both?</b> We combine them &mdash; your typed counts override the photo, and anything you type that isn't in the photo gets added.</p>
+  <textarea id="items" placeholder="Tell us what you are storing, or add details the photo misses..."></textarea>
+  <button class="btn" onclick="quoteNow()">Get my estimate</button></div>
  <div class="card" id="result"><h2>Your estimate</h2><div id="detected"></div><div id="body"></div></div>
 </main>
 <script>
@@ -602,7 +624,11 @@ _ESTIMATE_HTML = """<!doctype html>
    else show('<div class=err>Tell us what you are storing.</div><p class=note>'+ex+'</p>');
    return;
   }
-  let rows=li.map(x=>'<tr><td>'+x.qty+"x "+x.item+'</td><td class=n>$'+Number(x.amount).toFixed(2)+'</td></tr>').join('');
+  const srcLbl={photo:'from photo',you:'you added','photo+you':'photo &middot; your count'};
+  let rows=li.map(x=>'<tr><td>'+x.qty+"x "+x.item
+   +(x.matched_from?' <span style="color:#5b6b7f;font-size:.82em">(you said &ldquo;'+x.matched_from+'&rdquo;)</span>':'')
+   +(x.source?' <span class=tag style="font-size:11px">'+srcLbl[x.source]+'</span>':'')
+   +'</td><td class=n>$'+Number(x.amount).toFixed(2)+'</td></tr>').join('');
   let extra=un.length?'<p class=note>Not priced (call us for these): '+un.join(', ')+'.</p>':'';
   if(data.capped) extra+='<p class=note>For more than '+data.capped+' of one item, call (314) 266-8878 for a bulk quote.</p>';
   let html='<table><thead><tr><th>Item</th><th class=n>Est.</th></tr></thead><tbody>'+rows+'</tbody></table>'
@@ -611,11 +637,20 @@ _ESTIMATE_HTML = """<!doctype html>
    +'<p class=note>Instant estimate based on typical UTrucking pricing. Final price is confirmed at pickup. Ready to book? Call (314) 266-8878 and mention your estimate.</p>';
   show(html);
  }
- async function quoteText(){const t=$('items').value.trim();if(!t)return;loading('Pricing your items...');
+ let photoB64=null;
+ async function quoteNow(){
+  const t=$('items').value.trim();
+  if(photoB64){loading(t?'Combining your photo and notes...':'Looking at your photo...');
+   try{const args={image_base64:photoB64};if(t)args.text=t;render(await postJSON('/photo_quote',{args:args}),true);}
+   catch(e){show('<div class=err>Network error. Please try again.</div>');}
+   return;}
+  if(!t){show('<div class=err>Add a photo or tell us what you are storing.</div>');return;}
+  loading('Pricing your items...');
   try{render(await postJSON('/quote',{args:{text:t}}),false);}catch(e){show('<div class=err>Network error. Please try again.</div>');}}
- $('photo').addEventListener('change',async e=>{const f=e.target.files[0];if(!f)return;loading('Looking at your photo...');
-  try{const b=await toB64(f);render(await postJSON('/photo_quote',{args:{image_base64:b}}),true);}
-  catch(err){show('<div class=err>Could not process that photo. Try another or use the text box.</div>');}});
+ $('photo').addEventListener('change',async e=>{const f=e.target.files[0];if(!f){photoB64=null;$('photostate').textContent='';return;}
+  $('photostate').textContent='Reading photo...';
+  try{photoB64=await toB64(f);$('photostate').innerHTML='&#10003; Photo attached &mdash; add any notes below, then hit the button (or we quote it now).';quoteNow();}
+  catch(err){photoB64=null;show('<div class=err>Could not process that photo. Try another or use the text box.</div>');}});
 </script></body></html>"""
 
 
@@ -769,7 +804,12 @@ def _chat_reply(msg, state, dispatch_rows, service_rows, book):
         return ("Those weeks are tight — tell me a date and I'll find the nearest opening.", {})
     q = _quote_items(text, book)
     if q.get("line_items"):
-        lines = "\n".join("• %dx %s — $%.2f" % (l["qty"], l["item"], l["amount"]) for l in q["line_items"])
+        def _fmt(l):
+            s = "• %dx %s — $%.2f" % (l["qty"], l["item"], l["amount"])
+            if l.get("matched_from"):
+                s += " (matched from \"%s\")" % l["matched_from"]
+            return s
+        lines = "\n".join(_fmt(l) for l in q["line_items"])
         um = q.get("unmatched") or []
         ums = ("\n(Couldn't price: %s — call us for those.)" % ", ".join(um)) if um else ""
         if q.get("capped"):
@@ -799,24 +839,37 @@ _CHAT_HTML = r"""<!doctype html><html lang=en><head>
 <meta charset=utf-8><meta name=viewport content="width=device-width, initial-scale=1">
 <title>UTrucking Assistant - SMS Preview</title>
 <style>
- :root{--navy:#14335f;--orange:#f5a623;--bot:#eef1f6;--me:#1e5aa8}
+ :root{--navy:#14335f;--orange:#f5a623;--bot:#eef1f6;--me:#1e5aa8;--space0:#070d1a;--space1:#16305c}
  *{box-sizing:border-box} html,body{height:100%}
- body{margin:0;font-family:'Segoe UI',system-ui,Arial,sans-serif;background:#f5f7fb;display:flex;flex-direction:column;height:100vh}
- header{background:var(--navy);color:#fff;padding:14px 16px}
- header b{font-size:16px} header .s{display:block;color:#cdd9ee;font-size:12px;margin-top:2px}
+ body{margin:0;font-family:'Segoe UI',system-ui,Arial,sans-serif;background:#f5f7fb;display:flex;flex-direction:column;height:100vh;height:100dvh}
+ header{background:linear-gradient(150deg,var(--space0) 0%,#122a52 65%,var(--space1) 100%);color:#fff;padding:14px 16px;position:relative;overflow:hidden}
+ header:after{content:"";position:absolute;inset:0;pointer-events:none;background-image:
+  radial-gradient(1.2px 1.2px at 12% 30%,rgba(255,255,255,.7),transparent 60%),
+  radial-gradient(1px 1px at 30% 72%,rgba(255,255,255,.5),transparent 60%),
+  radial-gradient(1.4px 1.4px at 47% 22%,rgba(255,217,149,.8),transparent 60%),
+  radial-gradient(1px 1px at 64% 62%,rgba(255,255,255,.45),transparent 60%),
+  radial-gradient(1.2px 1.2px at 80% 32%,rgba(255,255,255,.6),transparent 60%),
+  radial-gradient(1px 1px at 93% 70%,rgba(255,217,149,.6),transparent 60%)}
+ header .ey{position:relative;text-transform:uppercase;letter-spacing:.28em;font-size:10px;font-weight:700;color:var(--orange)}
+ header b{position:relative;font-size:16px;display:block;margin-top:2px} header .s{position:relative;display:block;color:#aebfda;font-size:12px;margin-top:2px}
  .note{background:#fff7e6;color:#8a6d3b;font-size:12px;text-align:center;padding:6px 10px}
- #log{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:8px}
+ #log{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:8px;-webkit-overflow-scrolling:touch}
  .b{max-width:82%;padding:9px 13px;border-radius:16px;font-size:15px;line-height:1.4;white-space:pre-wrap;word-wrap:break-word}
  .bot{background:var(--bot);color:#1f2933;align-self:flex-start;border-bottom-left-radius:4px}
  .me{background:var(--me);color:#fff;align-self:flex-end;border-bottom-right-radius:4px}
  form{display:flex;gap:8px;padding:10px;background:#fff;border-top:1px solid #e3e9f2}
- input{flex:1;border:1px solid #cdd6e4;border-radius:20px;padding:11px 14px;font:inherit}
- button{background:var(--navy);color:#fff;border:0;border-radius:20px;padding:0 18px;font-weight:700;cursor:pointer}
+ input{flex:1;min-width:0;border:1px solid #cdd6e4;border-radius:20px;padding:11px 14px;font:inherit;font-size:16px}
+ button{background:var(--navy);color:#fff;border:0;border-radius:20px;padding:0 18px;font-weight:700;cursor:pointer;font-family:inherit}
+ #mic{flex:none;width:44px;height:44px;padding:0;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  background:rgba(20,51,95,.08);border:1px solid #cdd6e4;color:var(--navy)}
+ #mic svg{width:19px;height:19px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+ #mic.rec{background:var(--orange);border-color:var(--orange);color:#fff;animation:recpulse 1.2s ease-in-out infinite}
+ @keyframes recpulse{0%,100%{box-shadow:0 0 0 0 rgba(245,166,35,.5)}50%{box-shadow:0 0 0 8px rgba(245,166,35,0)}}
 </style></head><body>
-<header><b>UTrucking Assistant</b><span class=s>SMS preview - test chat</span></header>
+<header><span class=ey>University Trucking</span><b>Assistant</b><span class=s>SMS preview - test chat</span></header>
 <div class=note>Preview only - no real texts are sent. Order lookups verify your identity, like the phone line.</div>
 <div id=log></div>
-<form id=f><button type=button id=mic title="Talk">&#127908;</button><input id=t autocomplete=off placeholder="Text a message..."><button>Send</button></form>
+<form id=f><button type=button id=mic title="Talk" aria-label="Talk"><svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></button><input id=t autocomplete=off placeholder="Text a message..."><button>Send</button></form>
 <script>
  const log=document.getElementById('log');let state={};
  var VOICE=location.search.indexOf('voice=1')>=0;
@@ -831,8 +884,8 @@ _CHAT_HTML = r"""<!doctype html><html lang=en><head>
    if(!SR){mic.style.display='none';return;}
    var rec=new SR();rec.lang='en-US';rec.interimResults=false;rec.maxAlternatives=1;
    rec.onresult=function(e){var t=e.results[0][0].transcript;if(t)send(t);};
-   rec.onend=function(){mic.textContent='🎤';};rec.onerror=function(){mic.textContent='🎤';};
-   mic.addEventListener('click',function(){try{if(window.speechSynthesis)window.speechSynthesis.cancel();mic.textContent='…';rec.start();}catch(e){mic.textContent='🎤';}});
+   rec.onend=function(){mic.classList.remove('rec');};rec.onerror=function(){mic.classList.remove('rec');};
+   mic.addEventListener('click',function(){try{if(window.speechSynthesis)window.speechSynthesis.cancel();mic.classList.add('rec');rec.start();}catch(e){mic.classList.remove('rec');}});
  })();
  var GREET='Hi! I am the UTrucking assistant. I can quote items, check pickup dates, or look up your order. Try: "quote 5 boxes and a mini fridge", "what days are open?", or "where is my order?"';
  bubble('bot',GREET);
@@ -860,11 +913,18 @@ async def insights_api(request: Request):
 def _metrics_brief(m):
     dem = m.get("demand", {})
     ov = m.get("overview", {})
+    pr = m.get("pricing", [])
+    price_lines = "; ".join(
+        "%s: $%s each, %s sold = $%s (%s%% of revenue); +$1/unit ≈ +$%s/season" % (
+            x["item"], x["unit_price"], x["units_sold"], x["revenue"], x["revenue_share_pct"], x["extra_per_$1_increase"])
+        for x in pr[:8])
     return "\n".join([
         "Revenue total: $%s across %s paid orders (avg $%s, median $%s). Dispatch orders: %s." % (
             ov.get("revenue"), ov.get("orders_with_revenue"), ov.get("avg_order"), ov.get("median_order"), ov.get("dispatch_orders")),
         "Revenue by building: " + "; ".join("%s $%s" % (x["building"], x["revenue"]) for x in m.get("revenue_by_building", [])[:10]),
         "Top items: " + ", ".join("%s x%s" % (x["item"], x["count"]) for x in m.get("top_items", [])[:10]),
+        "PRICING LEVERS (current price, units sold this season, revenue share, and the extra season revenue from a "
+        "+$1 price increase — a +$1 increase adds about 'units sold' dollars, minus any drop in demand): " + price_lines + ".",
         "Frequently stored together: " + ", ".join("%s+%s (%s)" % (x["a"], x["b"], x["count"]) for x in m.get("top_pairs", [])[:6]),
         "Average items per order: %s." % m.get("avg_items_per_order"),
         "Completion funnel: %s." % m.get("funnel"),
@@ -878,10 +938,20 @@ def _metrics_brief(m):
     ])
 
 
-_ASK_PROMPT = ("You are UTrucking's internal data analyst (a student storage & moving company). Answer the "
-    "staff question using ONLY the aggregate business data below. Be concise; lead with the number. If the "
-    "question is about a specific individual customer or any personal detail, refuse and say you only provide "
-    "aggregate business stats. If the data doesn't contain the answer, say so plainly.\n\nDATA:\n%s\n\nQUESTION: %s\n\nANSWER:")
+_ASK_PROMPT = (
+    "You are UTrucking's sharp, proactive data analyst (a student storage & moving company). Use the aggregate "
+    "business data below to give a DIRECT, QUANTIFIED, actionable answer — like a consultant, not a database.\n"
+    "Rules:\n"
+    "- Lead with the specific number or recommendation. Then one or two sentences of the 'why', grounded in the data.\n"
+    "- For PRICING questions, reason from the PRICING LEVERS: a +$1 increase on an item adds roughly its 'units sold' "
+    "in season revenue. Recommend concrete amounts (e.g. 'raise the box $22->$24: +~$X/season') and prioritise the "
+    "highest-volume / highest-revenue-share items where a small change compounds. Note it's a management decision and "
+    "that very large hikes risk demand.\n"
+    "- For strategy/marketing/ops questions, infer sensible recommendations FROM the data (peak days, top buildings, "
+    "upsell pairs, repeat rate, data-quality gaps) even if the data doesn't state the answer verbatim. Don't refuse "
+    "just because it isn't a single cell — that's your job. Only say you can't help if truly nothing in the data bears on it.\n"
+    "- NEVER reveal or speculate about an individual customer or any personal detail; for that, refuse and say you only "
+    "provide aggregate business stats.\n\nDATA:\n%s\n\nQUESTION: %s\n\nANSWER:")
 
 
 @mcp.custom_route("/ask_api", methods=["POST"])
@@ -911,19 +981,29 @@ async def ask_api(request: Request):
 
 _ASK_HTML = r"""<!doctype html><html lang=en><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1">
 <title>Ask Your Data - UTrucking</title><style>
-:root{--navy:#14335f;--orange:#f5a623;--line:#e3e9f2;--mut:#5b6b7f}
+:root{--navy:#14335f;--orange:#f5a623;--line:#e3e9f2;--mut:#5b6b7f;--space0:#070d1a;--space1:#16305c}
 *{box-sizing:border-box}body{margin:0;font-family:'Segoe UI',system-ui,Arial,sans-serif;background:#f5f7fb;color:#1f2933}
-header{background:var(--navy);color:#fff;padding:16px 18px}header b{font-size:17px}header .s{display:block;color:#cdd9ee;font-size:12px}
+header{background:linear-gradient(150deg,var(--space0) 0%,#122a52 65%,var(--space1) 100%);color:#fff;padding:16px 18px;position:relative;overflow:hidden}
+header:after{content:"";position:absolute;inset:0;pointer-events:none;background-image:
+ radial-gradient(1.2px 1.2px at 12% 30%,rgba(255,255,255,.7),transparent 60%),
+ radial-gradient(1px 1px at 30% 72%,rgba(255,255,255,.5),transparent 60%),
+ radial-gradient(1.4px 1.4px at 47% 22%,rgba(255,217,149,.8),transparent 60%),
+ radial-gradient(1px 1px at 64% 62%,rgba(255,255,255,.45),transparent 60%),
+ radial-gradient(1.2px 1.2px at 80% 32%,rgba(255,255,255,.6),transparent 60%),
+ radial-gradient(1px 1px at 93% 70%,rgba(255,217,149,.6),transparent 60%)}
+header>*{position:relative}header b{font-size:17px}header .s{display:block;color:#aebfda;font-size:12px}
+header .ey{display:block;text-transform:uppercase;letter-spacing:.28em;font-size:10px;font-weight:700;color:var(--orange);margin-bottom:2px}
 main{max-width:720px;margin:0 auto;padding:18px 16px 60px}
 .chips{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}
-.chip{background:#eef3fb;color:var(--navy);border:1px solid var(--line);border-radius:20px;padding:6px 12px;font-size:13px;cursor:pointer}
+.chip{background:#eef3fb;color:var(--navy);border:1px solid var(--line);border-radius:20px;padding:8px 13px;font-size:13px;cursor:pointer}
+.chip:hover{border-color:var(--orange)}
 form{display:flex;gap:8px;margin-top:10px}
-input{flex:1;border:1px solid #cdd6e4;border-radius:10px;padding:12px;font:inherit}
-button{background:var(--navy);color:#fff;border:0;border-radius:10px;padding:0 18px;font-weight:700;cursor:pointer}
+input{flex:1;min-width:0;border:1px solid #cdd6e4;border-radius:10px;padding:12px;font:inherit;font-size:16px}
+button{background:var(--navy);color:#fff;border:0;border-radius:10px;padding:0 18px;font-weight:700;cursor:pointer;font-family:inherit}
 #ans{white-space:pre-wrap;background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px;margin-top:14px;line-height:1.45;display:none}
 .mut{color:var(--mut);font-size:13px}
 </style></head><body>
-<header><b>Ask Your Data</b><span class=s>Internal analyst - aggregate business stats</span></header>
+<header><span class=ey>University Trucking</span><b>Ask Your Data</b><span class=s>Internal analyst - aggregate business stats</span></header>
 <main>
 <p class=mut>Ask a plain-English question about the storage operation. Aggregate figures only - no individual customer data.</p>
 <div class=chips id=chips></div>
@@ -942,9 +1022,18 @@ document.getElementById('f').addEventListener('submit',function(e){e.preventDefa
 
 _INSIGHTS_HTML = r"""<!doctype html><html lang=en><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1">
 <title>Business Insights - UTrucking</title><style>
-:root{--navy:#14335f;--orange:#f5a623;--line:#e3e9f2;--mut:#5b6b7f}
+:root{--navy:#14335f;--orange:#f5a623;--line:#e3e9f2;--mut:#5b6b7f;--space0:#070d1a;--space1:#16305c}
 *{box-sizing:border-box}body{margin:0;font-family:'Segoe UI',system-ui,Arial,sans-serif;background:#f5f7fb;color:#1f2933}
-header{background:var(--navy);color:#fff;padding:16px 18px}header b{font-size:17px}header .s{display:block;color:#cdd9ee;font-size:12px}
+header{background:linear-gradient(150deg,var(--space0) 0%,#122a52 65%,var(--space1) 100%);color:#fff;padding:16px 18px;position:relative;overflow:hidden}
+header:after{content:"";position:absolute;inset:0;pointer-events:none;background-image:
+ radial-gradient(1.2px 1.2px at 12% 30%,rgba(255,255,255,.7),transparent 60%),
+ radial-gradient(1px 1px at 30% 72%,rgba(255,255,255,.5),transparent 60%),
+ radial-gradient(1.4px 1.4px at 47% 22%,rgba(255,217,149,.8),transparent 60%),
+ radial-gradient(1px 1px at 64% 62%,rgba(255,255,255,.45),transparent 60%),
+ radial-gradient(1.2px 1.2px at 80% 32%,rgba(255,255,255,.6),transparent 60%),
+ radial-gradient(1px 1px at 93% 70%,rgba(255,217,149,.6),transparent 60%)}
+header>*{position:relative}header b{font-size:17px}header .s{display:block;color:#aebfda;font-size:12px}
+header .ey{display:block;text-transform:uppercase;letter-spacing:.28em;font-size:10px;font-weight:700;color:var(--orange);margin-bottom:2px}
 main{max-width:900px;margin:0 auto;padding:16px}
 .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin:12px 0}
 .stat{background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px}
@@ -953,10 +1042,11 @@ main{max-width:900px;margin:0 auto;padding:16px}
 .card h3{margin:0 0 10px;color:var(--navy);font-size:15px}
 .row{display:flex;align-items:center;gap:8px;margin:5px 0;font-size:13px}
 .row .lab{width:130px;flex:none}.row .barwrap{flex:1;background:#eef3fb;border-radius:6px;height:16px;overflow:hidden}
-.row .bar{height:16px;background:var(--navy)}.row .val{width:78px;flex:none;text-align:right;color:var(--mut)}
+.row .bar{height:16px;background:linear-gradient(90deg,var(--navy),#2c5aa0)}.row .val{width:78px;flex:none;text-align:right;color:var(--mut)}
 .mut{color:var(--mut);font-size:12px}
+@media (max-width:480px){.row .lab{width:96px;font-size:12px}.row .val{width:64px;font-size:12px}.stat .n{font-size:18px}}
 </style></head><body>
-<header><b>Business Insights</b><span class=s>Live from the DISPATCH + SERVICE sheets</span></header>
+<header><span class=ey>University Trucking</span><b>Business Insights</b><span class=s>Live from the DISPATCH + SERVICE sheets</span></header>
 <main id=root><p class=mut>Loading live data...</p></main>
 <script>
 function esc(s){return String(s).replace(/[&<>]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;'}[c];});}
@@ -979,37 +1069,141 @@ fetch('/insights_api').then(function(r){return r.json();}).then(render).catch(fu
 
 
 _DASH_HTML = r"""<!doctype html><html lang=en><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1">
-<title>UTrucking AI Toolkit</title><style>
-:root{--navy:#14335f;--orange:#f5a623;--line:#e3e9f2;--mut:#5b6b7f}
-*{box-sizing:border-box}html,body{height:100%}body{margin:0;font-family:'Segoe UI',system-ui,Arial,sans-serif;background:#f5f7fb;color:#1f2933;height:100vh;display:flex;flex-direction:column}
-#home{flex:1;overflow:auto}
-.hero{background:var(--navy);color:#fff;padding:26px 20px}.hero .ey{text-transform:uppercase;letter-spacing:.16em;font-size:11px;font-weight:700;color:var(--orange)}
-.hero h1{margin:4px 0 0;font-size:24px}.hero p{margin:6px 0 0;color:#cdd9ee;font-size:14px}
-.cards{max-width:820px;margin:0 auto;padding:18px 16px;display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px}
-.tool{background:#fff;border:1px solid var(--line);border-radius:14px;padding:18px;cursor:pointer;box-shadow:0 1px 3px rgba(20,51,95,.06)}
-.tool:active{transform:translateY(1px)}.tool .ic{font-size:26px}.tool h2{margin:8px 0 3px;font-size:17px;color:var(--navy)}.tool p{margin:0;color:var(--mut);font-size:13px}
-#view{display:none;flex:1;flex-direction:column;height:100vh}
-#bar{background:var(--navy);color:#fff;display:flex;align-items:center;gap:12px;padding:10px 14px}
-#bar button{background:rgba(255,255,255,.16);color:#fff;border:0;border-radius:8px;padding:8px 12px;font-weight:700;cursor:pointer;font-size:14px}
-#bar span{font-weight:600}#frame{flex:1;border:0;width:100%}
-.foot{max-width:820px;margin:0 auto;padding:0 16px 24px;color:var(--mut);font-size:12px}
+<title>UTrucking &mdash; AI Toolkit</title><style>
+:root{--bg0:#070d1a;--bg1:#0c1830;--panel:rgba(15,30,58,.55);--edge:rgba(146,171,205,.16);
+ --ink:#e9eff9;--mut:#8ca3c0;--orange:#f5a623;--orange2:#ffc45e;--ring:rgba(245,166,35,.55)}
+*{box-sizing:border-box}html,body{height:100%}
+body{margin:0;font-family:'Segoe UI',system-ui,-apple-system,Arial,sans-serif;color:var(--ink);
+ background:radial-gradient(1200px 700px at 70% -10%,#16305c 0%,var(--bg1) 45%,var(--bg0) 100%);
+ min-height:100vh;display:flex;flex-direction:column;overflow-x:hidden}
+#stars{position:fixed;inset:0;z-index:0;pointer-events:none}
+#home{position:relative;z-index:1;flex:1;overflow:auto;-webkit-overflow-scrolling:touch}
+.wrap{max-width:900px;margin:0 auto;padding:40px 20px 56px}
+.ey{text-transform:uppercase;letter-spacing:.34em;font-size:11px;font-weight:700;color:var(--orange);text-align:center}
+h1{margin:10px 0 0;font-size:clamp(26px,5vw,38px);text-align:center;font-weight:650;letter-spacing:.01em}
+.sub{margin:10px auto 0;color:var(--mut);font-size:15px;text-align:center;max-width:460px;line-height:1.5}
+/* hub */
+.hubwrap{display:flex;justify-content:center;margin:30px 0 8px}
+.hub{position:relative;width:104px;height:104px}
+.hub .core{position:absolute;inset:14px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+ font-weight:800;font-size:26px;letter-spacing:.02em;color:#0b1526;
+ background:radial-gradient(circle at 34% 30%,var(--orange2),var(--orange) 62%,#c77f10);
+ box-shadow:0 0 34px rgba(245,166,35,.35),0 0 90px rgba(245,166,35,.14);animation:pulse 4.5s ease-in-out infinite}
+.hub .ring{position:absolute;inset:0;border-radius:50%;border:1px solid rgba(146,171,205,.35)}
+.hub .ring2{position:absolute;inset:-18px;border-radius:50%;border:1px dashed rgba(146,171,205,.16)}
+.hub .orb{position:absolute;inset:-18px;animation:spin 16s linear infinite}
+.hub .orb i{position:absolute;top:-3px;left:50%;margin-left:-3px;width:7px;height:7px;border-radius:50%;
+ background:var(--orange2);box-shadow:0 0 10px var(--orange)}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes pulse{0%,100%{box-shadow:0 0 30px rgba(245,166,35,.32),0 0 80px rgba(245,166,35,.12)}
+ 50%{box-shadow:0 0 44px rgba(245,166,35,.5),0 0 110px rgba(245,166,35,.2)}}
+/* cards */
+.cards{margin-top:34px;display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:16px}
+.tool{position:relative;display:flex;gap:14px;align-items:flex-start;text-align:left;width:100%;
+ background:var(--panel);border:1px solid var(--edge);border-radius:16px;padding:18px 34px 18px 16px;cursor:pointer;
+ color:var(--ink);font:inherit;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+ transition:transform .25s ease,border-color .25s ease,box-shadow .25s ease;
+ opacity:0;transform:translateY(16px);animation:rise .6s cubic-bezier(.2,.7,.3,1) forwards;will-change:transform}
+.tool:nth-child(1){animation-delay:.05s}.tool:nth-child(2){animation-delay:.12s}.tool:nth-child(3){animation-delay:.19s}
+.tool:nth-child(4){animation-delay:.26s}.tool:nth-child(5){animation-delay:.33s}
+@keyframes rise{to{opacity:1;transform:translateY(0)}}
+.tool:hover,.tool:focus-visible{border-color:var(--ring);box-shadow:0 6px 30px rgba(0,0,0,.35),0 0 0 1px var(--ring) inset;outline:none}
+.tool:active{transform:translateY(1px) !important}
+.tool .ic{flex:none;width:42px;height:42px;border-radius:12px;display:flex;align-items:center;justify-content:center;
+ background:rgba(245,166,35,.12);border:1px solid rgba(245,166,35,.25)}
+.tool .ic svg{width:22px;height:22px;stroke:var(--orange2);fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.tool h2{margin:1px 0 4px;font-size:16.5px;font-weight:650}
+.tool p{margin:0;color:var(--mut);font-size:13px;line-height:1.45}
+.tool .go{position:absolute;right:14px;top:50%;transform:translateY(-50%);color:var(--mut);font-size:18px;transition:transform .25s,color .25s}
+.tool:hover .go{transform:translateY(-50%) translateX(3px);color:var(--orange2)}
+.foot{margin-top:30px;color:var(--mut);font-size:12px;text-align:center;line-height:1.6}
+.foot b{color:#b9c9de;font-weight:600}
+/* tool view */
+#view{display:none;position:relative;z-index:1;flex:1;flex-direction:column;height:100vh;height:100dvh}
+#bar{background:rgba(9,17,33,.9);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+ border-bottom:1px solid var(--edge);display:flex;align-items:center;gap:12px;padding:10px 14px}
+#bar button{display:flex;align-items:center;gap:7px;background:rgba(245,166,35,.14);color:var(--orange2);
+ border:1px solid rgba(245,166,35,.3);border-radius:10px;padding:9px 14px;font-weight:700;cursor:pointer;font-size:14px;font-family:inherit}
+#bar button:hover{background:rgba(245,166,35,.22)}
+#bar .t{font-weight:600;font-size:15px}
+#bar .esc{margin-left:auto;color:var(--mut);font-size:11.5px;letter-spacing:.06em}
+#frame{flex:1;border:0;width:100%;background:#f5f7fb}
+@media (max-width:560px){
+ .wrap{padding:30px 14px 44px}.cards{grid-template-columns:1fr;gap:12px}
+ .hub{width:88px;height:88px}.hub .core{font-size:22px}
+ #bar .esc{display:none}}
+@media (prefers-reduced-motion:reduce){
+ .hub .orb,.hub .core{animation:none}.tool{animation:none;opacity:1;transform:none;transition:none}}
 </style></head><body>
+<canvas id=stars aria-hidden=true></canvas>
 <div id=home>
- <div class=hero><div class=ey>University Trucking</div><h1>AI Toolkit</h1><p>Pick a tool. Press Esc or Back to return here.</p></div>
- <div class=cards>
-  <div class=tool onclick="op('/chat','Assistant chat')"><div class=ic>&#128172;</div><h2>Assistant chat</h2><p>Quotes, pickup dates &amp; order lookup - the SMS/voice brain.</p></div>
-  <div class=tool onclick="op('/chat?voice=1','Voice assistant')"><div class=ic>&#127908;</div><h2>Voice assistant</h2><p>Talk to the assistant in your browser - free, no Retell minutes.</p></div>
-  <div class=tool onclick="op('/estimate','Instant estimate')"><div class=ic>&#128247;</div><h2>Instant estimate</h2><p>Photo or text &rarr; an itemized price in seconds.</p></div>
-  <div class=tool onclick="op('/ask','Ask your data')"><div class=ic>&#128269;</div><h2>Ask your data</h2><p>Plain-English questions about revenue, items &amp; demand.</p></div>
-  <div class=tool onclick="op('/insights','Business insights')"><div class=ic>&#128202;</div><h2>Business insights</h2><p>Live dashboard: revenue, funnel, demand, data quality.</p></div>
+ <div class=wrap>
+  <div class=ey>University Trucking</div>
+  <h1>AI Toolkit</h1>
+  <p class=sub>Five tools, one place &mdash; quotes, pickups, order lookup and live business intelligence.</p>
+  <div class=hubwrap><div class=hub aria-hidden=true>
+   <div class=ring></div><div class=ring2></div>
+   <div class=orb><i></i></div>
+   <div class=core>UT</div>
+  </div></div>
+  <div class=cards>
+   <button class=tool onclick="op('/chat','Assistant chat')">
+    <span class=ic><svg viewBox="0 0 24 24"><path d="M21 12a8 8 0 0 1-8 8H4l2.4-2.7A8 8 0 1 1 21 12z"/><path d="M8.5 10.5h7M8.5 13.5h4.5"/></svg></span>
+    <span><h2>Assistant chat</h2><p>Quotes, pickup dates &amp; identity-verified order lookup.</p></span><span class=go>&rsaquo;</span></button>
+   <button class=tool onclick="op('/chat?voice=1','Voice assistant')">
+    <span class=ic><svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></span>
+    <span><h2>Voice assistant</h2><p>Talk to the same brain in your browser &mdash; hands-free.</p></span><span class=go>&rsaquo;</span></button>
+   <button class=tool onclick="op('/estimate','Instant estimate')">
+    <span class=ic><svg viewBox="0 0 24 24"><path d="M4 8h3l1.5-2h7L17 8h3v11H4z"/><circle cx="12" cy="13" r="3.4"/></svg></span>
+    <span><h2>Instant estimate</h2><p>Photo, description, or both &rarr; an itemized price in seconds.</p></span><span class=go>&rsaquo;</span></button>
+   <button class=tool onclick="op('/ask','Ask your data')">
+    <span class=ic><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.2-4.2M11 8.2a2.8 2.8 0 1 1-.01 5.6"/></svg></span>
+    <span><h2>Ask your data</h2><p>Plain-English questions on revenue, demand &amp; pricing.</p></span><span class=go>&rsaquo;</span></button>
+   <button class=tool onclick="op('/insights','Business insights')">
+    <span class=ic><svg viewBox="0 0 24 24"><path d="M4 20V9M10 20V4M16 20v-8M21 20H3"/></svg></span>
+    <span><h2>Business insights</h2><p>Live revenue, funnel, demand and data-quality board.</p></span><span class=go>&rsaquo;</span></button>
+  </div>
+  <p class=foot><b>Live data.</b> Order details are only shared after identity verification &mdash; the same gate as the phone line.</p>
  </div>
- <div class=foot>All tools read live data. The assistant verifies identity before sharing any order details.</div>
 </div>
-<div id=view><div id=bar><button onclick=back()>&larr; Back</button><span id=vtitle></span></div><iframe id=frame></iframe></div>
+<div id=view>
+ <div id=bar><button onclick=back()><svg width=15 height=15 viewBox="0 0 24 24" fill=none stroke=currentColor stroke-width=2.2 stroke-linecap=round stroke-linejoin=round><path d="M19 12H5M11 18l-6-6 6-6"/></svg>Back</button><span class=t id=vtitle></span><span class=esc>ESC to return</span></div>
+ <iframe id=frame title="tool"></iframe>
+</div>
 <script>
-function op(url,title){document.getElementById('frame').src=url;document.getElementById('vtitle').textContent=title;document.getElementById('home').style.display='none';document.getElementById('view').style.display='flex';}
-function back(){document.getElementById('view').style.display='none';document.getElementById('frame').src='about:blank';document.getElementById('home').style.display='';}
+function op(url,title){document.getElementById('frame').src=url;document.getElementById('vtitle').textContent=title;
+ document.getElementById('home').style.display='none';document.getElementById('view').style.display='flex';}
+function back(){document.getElementById('view').style.display='none';document.getElementById('frame').src='about:blank';
+ document.getElementById('home').style.display='';}
 document.addEventListener('keydown',function(e){if(e.key==='Escape')back();});
+/* starfield with slow drift + pointer parallax */
+(function(){
+ var cv=document.getElementById('stars'),cx=cv.getContext('2d'),stars=[],W,H,px=0,py=0,tx=0,ty=0;
+ var still=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+ function size(){var d=Math.min(window.devicePixelRatio||1,2);
+  W=cv.width=innerWidth*d;H=cv.height=innerHeight*d;cv.style.width=innerWidth+'px';cv.style.height=innerHeight+'px';
+  stars=[];var n=Math.min(170,Math.floor(innerWidth*innerHeight/9000));
+  for(var i=0;i<n;i++)stars.push({x:Math.random()*W,y:Math.random()*H,z:.3+Math.random()*.7,r:(.4+Math.random()*1.1)*d,tw:Math.random()*6.28});}
+ function frame(t){cx.clearRect(0,0,W,H);px+=(tx-px)*.04;py+=(ty-py)*.04;
+  for(var i=0;i<stars.length;i++){var s=stars[i];
+   if(!still){s.x-=.014*s.z*(W/1200);if(s.x<0)s.x=W;}
+   var a=.35+.45*(still?1:Math.abs(Math.sin(t/1400+s.tw)));
+   cx.globalAlpha=a*s.z;cx.fillStyle=i%9==0?'#ffd995':'#dbe7f7';
+   cx.beginPath();cx.arc(s.x+px*s.z*18,s.y+py*s.z*18,s.r,0,6.29);cx.fill();}
+  cx.globalAlpha=1;if(!still)requestAnimationFrame(frame);}
+ size();addEventListener('resize',size);
+ addEventListener('pointermove',function(e){tx=(e.clientX/innerWidth-.5);ty=(e.clientY/innerHeight-.5);},{passive:true});
+ if(still){frame(0);}else{requestAnimationFrame(frame);}
+})();
+/* gentle 3D tilt on pointer devices */
+(function(){
+ if(matchMedia('(hover: none)').matches)return;
+ document.querySelectorAll('.tool').forEach(function(c){
+  c.addEventListener('pointermove',function(e){var r=c.getBoundingClientRect();
+   var x=(e.clientX-r.left)/r.width-.5,y=(e.clientY-r.top)/r.height-.5;
+   c.style.transform='perspective(700px) rotateX('+(-y*5)+'deg) rotateY('+(x*6)+'deg) translateY(-2px)';});
+  c.addEventListener('pointerleave',function(){c.style.transform='';});});
+})();
 </script></body></html>"""
 
 

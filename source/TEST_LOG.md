@@ -168,6 +168,22 @@ The whole brain was driven directly against **live data** (1,674 dispatch + 654 
 | `compute_metrics` on **empty** and **malformed** rows | ✅ returns a valid dict, no crash |
 | **`/ask` grounding proven PII-free** | ✅ the data brief contains **zero** student names and **zero** phone numbers — safe on a public page even if the model misbehaved |
 
+### Round 2 (user-reported bug → parser rebuild, 2026-07-03)
+A real user test — *"6 utrucing box, 1 fridge, 3 tv, 1 mattress"* — priced **1** box instead of 6: the typo "utrucing" sat between the quantity and the item word, and the old parser only bound a quantity directly adjacent to a known item. The parser was rebuilt and re-audited:
+
+| Improvement | Example → result |
+|---|---|
+| **Positional quantity binding** — a number binds to the item it precedes *or* follows, across typos/adjectives, preferring known items | "6 utrucing box" → 6× box · "box 6" → 6× box · "6 red boxes" → 6× box · "6x box" / "box x6" → 6× box |
+| **Domain spell-fix** — obvious typos map to the catalog before parsing | "2 matress" → 2× Mattress · "3 plasic containr" → 3× Plastic Container |
+| **Closest-match with visible mapping** — an unknown-but-close item prices as the nearest catalog item and *shows the mapping* | "microwave oven" → 2× Microwave *(you said "microwave oven")* |
+| **Non-storage denylist** — supplies/objects never priced | tape, straps, dolly, blankets → listed as *not priced* |
+| **Nonsense stays unmatched** — the loose match has a floor, so gibberish is surfaced, not guessed | "llama", "spaceship" → *couldn't price* (llama does **not** become "lamp") |
+| **Photo + text combined** — the estimate page now takes a photo *and* a description together | Typed counts **override** the photo; text-only items are **added**; every line is tagged *from photo / you added / photo · your count* |
+
+**Regression suites now run on every change: 28/28 parser cases · 8/8 photo+text merge cases · 13/13 adversarial brain cases.** The exact reported input now returns 6× box + 1× fridge + 3× TV + 1× mattress = **$264**... itemized correctly.
+
+The **Ask-your-data copilot** was also upgraded after refusing a pricing question: the metrics brief now carries pricing levers (unit price, units sold, revenue share, +$1 sensitivity per item), so *"How much should I raise prices?"* now answers concretely — e.g. *"raise the box $22→$24 ≈ +$5,186/season (65% of revenue)"* — while still refusing individual-customer questions.
+
 ### Bug found and fixed this pass
 **A six-figure quantity produced a $22M estimate.** *"quote 999999 boxes"* on the public estimate page returned **$21,999,978** — no sanity cap. **Fixed:** every line item is now clamped to **1–200**; anything larger is capped with a *"call (314) 266-8878 for a bulk quote"* note, and zero/negative quantities clamp to at least 1 (never a $0 or dropped line). Re-tested: the same input now returns a capped **$4,400** with the bulk-quote note. The "never silently drop an item" invariant was re-verified — a five-item order (couch, dresser, bike, mini fridge, 12 boxes) prices all five ($404).
 
