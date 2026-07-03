@@ -33,7 +33,7 @@ A **live AI phone assistant** plus a **data-backed plan** to automate the front 
 3. **Photo-to-quote — now built.** Customers photograph their pile; AI quotes instantly. Our item photos make this a moat no competitor has.
 
 ## ⏭️ What's next
-Turn the assistant from *answering* to *doing*: **book pickups on the call**, **text reminders & confirmations**, **auto-generate invoices**, and **route crews by building**. All of it rides on the system already built.
+Turn the assistant from *answering* to *doing*: **book pickups on the call**, **text reminders & confirmations**, **auto-generate invoices**, and **run the fall return-season outreach** by text. All of it rides on the system already built — the crew-routing and forecast pieces are done.
 
 ---
 
