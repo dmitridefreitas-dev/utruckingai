@@ -182,6 +182,16 @@ A real user test — *"6 utrucing box, 1 fridge, 3 tv, 1 mattress"* — priced *
 
 **Regression suites now run on every change: 28/28 parser cases · 8/8 photo+text merge cases · 13/13 adversarial brain cases.** The exact reported input now returns 6× box + 1× fridge + 3× TV + 1× mattress = **$264**... itemized correctly.
 
+### Round 3 (user-reported → AI item mapping + the 80-item gauntlet, 2026-07-03)
+A second live test — *"two utrucing box, 3 bed, 1 fridghe, 1 skateboard, 1 baseball bat, desk"* — priced everything **except the baseball bat**, which isn't string-close to anything in the catalog. Root cause: spelling-fuzzy can't do *meaning*. Fixes, each re-audited:
+
+1. **AI second-chance matching.** Anything the deterministic ladder can't place is sent (in one batch) to the AI, which maps it to the closest catalog item by kind and size — and the estimate shows the mapping on the line: *1× Skateboard — $15.00 (you said "baseball bat")*. Truly non-storable things (a pet, a person, gibberish) stay unpriced, supplies (tape, straps) are never sent, and if the AI is unreachable the estimate simply returns unchanged — it can never make a quote worse.
+2. **The 80-item student gauntlet.** A stress list of ~80 realistic dorm items (comforters, air fryers, PS5, skis, golf clubs, dumbbells, violins, winter coats, pots and pans...) is now a standing test: **80/80 priced or mapped — 0 silently dropped, 0 left unpriced.** The gauntlet itself caught three more bugs which were fixed: "ps5" was invisible to the parser (letters-only tokens), "toaster" string-matched to *poster* → Framed Art (loose fuzzy now defers to the AI), and the AI occasionally skipped entries in a big batch (now: forced-JSON responses, low temperature, and a targeted retry).
+3. **Rate-limit resilience (fixes the photo-upload 429).** All AI calls (photo detection, ask-your-data, item mapping) now walk a **model fallback chain** — three Gemini models with separate free-tier quota buckets — verified live: the primary model returned 429 and the fallback answered. The ask tool's fallback message is now friendly instead of a raw data dump.
+4. **Browser voice made human.** The voice assistant now picks the most natural voice installed (neural "Natural" voices first), strips receipt-speak ("5x", bullets) and speaks sentence-by-sentence for natural pacing.
+
+**Suites after this round: 36/36 parser + AI-map · 13/13 adversarial brain · 7/7 photo+text merge · 80/80 item gauntlet.**
+
 The **Ask-your-data copilot** was also upgraded after refusing a pricing question: the metrics brief now carries pricing levers (unit price, units sold, revenue share, +$1 sensitivity per item), so *"How much should I raise prices?"* now answers concretely — e.g. *"raise the box $22→$24 ≈ +$5,186/season (65% of revenue)"* — while still refusing individual-customer questions.
 
 ### Bug found and fixed this pass
