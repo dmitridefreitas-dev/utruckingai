@@ -252,6 +252,21 @@ Eight improvements were built — a mix of new tools, deepened old ones, and res
 
 Deployed backend pushed (with the test suite + CI); portfolio copy re-synced with the live-Sheet-ID redaction assertion passing. Nothing that needs the **$20 phone number** (caller-ID auto-greet on inbound calls) or **Apps Script write-back** (booking/SMS) was activated — those stay logged as prepped-not-wired; the phone-lookup *capability* is built and testable now, it just isn't auto-triggered by an inbound call yet.
 
+### Round 7 (catalog expansion — cover everything a student stores over the summer, 2026-07-04)
+The item catalog was widened so more of what a caller says matches **its actual item, or the closest one by storage cost** — instead of falling through to the AI or coming back unpriced. Priced categories grew **44 → 59** and spoken variants to **321**, all priced inside the existing size tiers ($15 small → $60 mattress). New coverage:
+
+| Category | Added |
+|---|---|
+| **Bedding / soft goods** | pillow, comforter, duvet, quilt, blanket, sheets, mattress topper, sleeping bag, towels, curtains |
+| **Sports & fitness** | baseball bat, tennis racket, hockey/lacrosse stick, golf clubs, skis, snowboard, surfboard, dumbbells, kettlebell, weight bench, exercise bike/Peloton, treadmill, elliptical, yoga mat, helmet, skates |
+| **Small appliances** | toaster, blender, kettle, Keurig, air fryer, rice cooker, instant pot, iron, humidifier, space heater, sewing machine, shredder, router (routes to the nearest size — no more "toaster → poster") |
+| **Kitchen / clothing (boxed)** | pots and pans, dishes, cookware, cooler, clothes, coats, shoes, boots, garment bag, laundry bag |
+| **Furniture / décor / storage** | **bed frame** (now its own large-furniture line, was folding into headboard), folding chair/table, storage bench, gaming chair, tapestry, whiteboard, floor/desk lamp, shelving unit, ironing board, step stool, milk crate, storage cube |
+
+**Audit — all green.** A 63-check catalog audit confirmed **0 orphan aliases** (every synonym resolves to a priced item), **0 duplicate keys**, correct tier for each new item, and that non-storage supplies (moving blanket, tape, dolly) still stay excluded. A **college-summer-storage coverage probe of 86 realistic items matched 86/86 deterministically** (price spread $15–$60), up from the pre-expansion baseline where dozens fell through to the AI. Regression battery held: **pytest 40/40 · parser 37/37 · 80-item gauntlet 0 dropped · stress 15/15 · cross-feature 6/6.** The gauntlet's AI-mapping layer shrank from ~48 items to ~10 — most items now price **instantly and free**, no model call, and identically across phone/chat/voice/estimate.
+
+Two once-"unmatchable" test fixtures were updated to a still-unknown item (kayak), since the inputs they used to probe the AI path (e.g. "baseball bat") are now first-class catalog matches; and "desk lamp" is correctly read as one Lamp rather than desk + lamp.
+
 ### Open security item (owner action)
 The PII/ops endpoints (`/lookup_student`, `/dispatch_plan`, `/billing_audit`, `/debug_sheets`) enforce a staff key **only when `API_SECRET` is set** in the Render environment — it is currently **unset** (deliberate safe-rollout default), so they are reachable without a key. The gate mechanism is built and tested; activating it is a coordinated owner step (set `API_SECRET`, and add the same value as an `x-utrucking-key` header on the Retell `lookup_student` tool so the phone agent keeps working). See `CONNECTIONS.md → Security activation runbook`. Separately, the Google Sheets are web-published as CSV and their IDs live in the (public) deployed-backend repo — fine for the free architecture, but means locking down the data requires making the sheets private + an authenticated fetch, an owner decision noted for later.
 
