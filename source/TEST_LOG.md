@@ -1,8 +1,8 @@
 # UTrucking AI Phone Assistant — QA & Testing Log
 
-**Prepared:** 2026-07-02 · **last updated** 2026-07-03
+**Prepared:** 2026-07-02 · **last updated** 2026-07-04
 **Agent:** Utrucking Agent (Retell AI) · versions v29 → v35
-**How tested:** scripted conversations run against the *live* agent via Retell's playground API, one real phone call, direct probes of the lookup backend + Google Sheets, and edge-case audits of the new business endpoints (`/quote`, `/availability`, `/dispatch_plan`, `/billing_audit`, `/photo_quote`) and the customer estimate page.
+**How tested:** scripted conversations run against the *live* agent via Retell's playground API, one real phone call, direct probes of the lookup backend + Google Sheets, edge-case audits of the business endpoints (`/quote`, `/availability`, `/dispatch_plan`, `/billing_audit`, `/photo_quote`, `/condition_check`) and the customer estimate page, plus a **standing offline test suite** (`pytest`, 40 cases) wired to **GitHub Actions CI** that runs on every push.
 
 ---
 
@@ -226,6 +226,31 @@ Four features were built, then hardened through a build → audit → test → f
 - **Aggregate-only proof for the public Insights page** — the `/insights` payload was asserted to contain **no 10-digit phone runs and none of the roster's student names** before it renders, confirming the public dashboard leaks no PII.
 
 **Suites after this round: 36/36 parser+AI-map · 15/15 adversarial brain · 80/80 gauntlet · 35/35 new A/B/D unit tests · live A/B/C/D smoke test green.** Deployed backend pushed; portfolio copy re-synced with the live-Sheet-ID redaction assertion passing.
+
+### Round 6 (eight capability upgrades + a standing test suite + long edge-case audit, 2026-07-04)
+Eight improvements were built — a mix of new tools, deepened old ones, and resilience — then hardened through a build → audit → stress → fix loop against the **live** sheets (1,690 dispatch / 654 service rows):
+
+| # | Improvement | What it does | Verified |
+|---|---|---|---|
+| 1 | **Sheet caching + resilience** | An in-memory 60-second TTL cache in front of both sheets; on a fetch failure it **serves the last good copy** instead of an empty result, so a transient Google Sheets hiccup can't blank out a quote or lookup | Unit-tested: cache-hit within TTL (no network), serve-stale on a thrown fetch, `force=True` bypass, empty-when-never-cached |
+| 2 | **Upsell on every quote** | A co-occurrence engine mines what students actually store together; every quote (phone, chat, voice, estimate, photo) now appends *"Most people also add a Plastic Container or Mini Fridge — want either on there?"* — real add-ons, never an item already in the cart, never a non-storage supply | Live sweep of 40 single-item carts → **0 bad suggestions**; single- vs two-candidate phrasing; no-op when nothing priced / all partners already in cart |
+| 3 | **Identify-by-phone (caller-ID groundwork)** | `lookup_student` now accepts a phone number; with a number and no name it resolves the caller by their on-file number (last-10-digit match), disambiguates if a number has several names, and still runs the identity gate before any reveal | Live: a known number resolves to the right student (`identified_by: phone`), an unknown number → `not_found`; edge inputs (blank, too-short, country-code, extension-shifted) all handled |
+| 4 | **Deeper forecast + date-range insights** | Forecast now adds **revenue projection** (avg order, peak-day and move-out-window revenue) and **per-building peak timing** (which building peaks which day, offset from the season peak). The Insights page takes **`from`/`to` date filters**; an empty range renders a clean "no orders in that range" message instead of `undefined` | Live: per-building timing (Umrath peaks 5/7, Danforth 5/6…); date filter (full 1,690 → May 1–13 = 1,195); empty-range render guard |
+| 5 | **Ops center real run sheets** | Each crew's stops are now **sequenced within a building** by natural room order (a real walking route), each stop numbered; the page adds a **capacity/utilization** readout and **CSV export + print** | Live peak day: 334 stops sequenced, every stop numbered exactly once per building; weird/blank/`None` room values sorted without crashing |
+| 6 | **Damage / condition photo docs** | A new `/condition` page + `/condition_check` endpoint run the item photo through free Gemini vision and return a **condition read** (good / wear / damage) with notes — dispute protection and a protection-plan upsell hook | Live vision call returns structured condition JSON; missing-image guarded; key stays in a header, redacted from errors |
+| 7 | **Staff console** (`/staff`) | One page unifying **today's run sheet, revenue-to-recover (billing) flags, the demand forecast, and a data-health scorecard** — the morning-standup view; billing section is staff-key-gated | Renders from `/dispatch_plan` + `/billing_audit` + `/insights_api`; screenshot-checked against the Orbit design |
+| 8 | **Standing test suite + CI** | A real `pytest` suite (`tests/` — engines, main, analytics, and an adversarial `test_edges.py`) plus a **GitHub Actions** workflow that runs it on every push | **40/40 passing** locally and in CI config; scratch harnesses excluded via `pytest.ini` + `.gitignore` |
+
+**Edge-case audit — bugs found and fixed this round:**
+1. **Empty date-range rendered `undefined`.** Filtering Insights to a range with zero orders returned `{}`, which the page rendered as literal "undefined". **Fixed:** a render guard shows *"No orders in that date range — try a wider range or All season."*
+2. **Room sequencing crashed on mixed room labels.** The natural-sort key compared an integer chunk against a string chunk (`204` vs `"b"`) → `TypeError`. **Fixed:** every chunk is a `(type-rank, number, text)` tuple, so numbers and letters order without ever comparing across types. Re-tested with `["", "12A", "3", "Suite 4-A", "basement", "10", "2-B", None]` — no crash, every stop numbered once.
+3. **Phone-match window on extensions.** A number with a trailing extension shifted the last-10-digit window; the test that expected a match was **wrong**, not the code — corrected to assert a clean number matches and an extension-appended one does not (the safe direction: no false identity).
+
+**Full battery, all green:**
+- `pytest` **40/40** · stress **15/15** · parser+AI-map **36/36** · 80-item gauntlet **0 dropped** · A/B/D unit **35/35**
+- **Live**: A/B/C/D smoke test OK · cross-feature adversarial probes **6/6** (chat quote carries an upsell line; 40-item upsell sweep clean; empty/garbled quotes safe; upsell deterministic) · upsell / phone / forecast+filter harnesses OK
+
+Deployed backend pushed (with the test suite + CI); portfolio copy re-synced with the live-Sheet-ID redaction assertion passing. Nothing that needs the **$20 phone number** (caller-ID auto-greet on inbound calls) or **Apps Script write-back** (booking/SMS) was activated — those stay logged as prepped-not-wired; the phone-lookup *capability* is built and testable now, it just isn't auto-triggered by an inbound call yet.
 
 ### Open security item (owner action)
 The PII/ops endpoints (`/lookup_student`, `/dispatch_plan`, `/billing_audit`, `/debug_sheets`) enforce a staff key **only when `API_SECRET` is set** in the Render environment — it is currently **unset** (deliberate safe-rollout default), so they are reachable without a key. The gate mechanism is built and tested; activating it is a coordinated owner step (set `API_SECRET`, and add the same value as an `x-utrucking-key` header on the Retell `lookup_student` tool so the phone agent keeps working). See `CONNECTIONS.md → Security activation runbook`. Separately, the Google Sheets are web-published as CSV and their IDs live in the (public) deployed-backend repo — fine for the free architecture, but means locking down the data requires making the sheets private + an authenticated fetch, an owner decision noted for later.

@@ -1,6 +1,6 @@
 # UTrucking AI Phone Assistant — Plan, Progress & Roadmap
 
-**Last updated:** 2026-07-03 · **Live agent:** v34 · **Backend:** latest pushed (`f4734b3`; one-click Render deploy activates the newest tools)
+**Last updated:** 2026-07-04 · **Live agent:** v35 · **Backend:** latest pushed (Round 6 on `main`; one-click Render deploy activates the newest tools)
 
 > **How to read this.** Four parts, in order:
 > **1 — What's been done** (built, tested, live). **2 — Where the value is added** (in dollars, from our own data). **3 — What's next** (the roadmap). **4 — What's required** to get there (a phone number, SMS, accounts, and their costs).
@@ -45,6 +45,12 @@ The assistant is **live and fully tested**. It answers calls in a warm, natural 
 | **Ops Command Center** — staff page: pick a day → balanced crew routes + printable run sheets (staff-key-gated) | 🟢 Built — deploy to go live |
 | **Next-season demand forecast** — projects the peak window, crews needed, and the fall return season from this year's shape; shown as an Insights planner card | 🟢 Built — deploy to go live |
 | **Repeat-customer multi-order lookup** — a caller with several orders picks which one (by order #, service, or month) before the identity gate | 🟢 Built — deploy to go live |
+| **Upsell on every quote** — every quote suggests the add-ons students actually store together ("most people also add a Plastic Container or Mini Fridge"), never an item already in the basket | 🟢 Built — deploy to go live |
+| **Caller-ID lookup** — the order lookup can resolve a returning caller by their on-file phone number (identity gate still applies); auto-greeting on inbound waits on a provisioned phone line | 🟢 Built — capability ready |
+| **Damage / condition photo check** (`/condition`) — a photo returns a good/wear/damage read with notes: move-out dispute protection + a protection-plan upsell | 🟢 Built — deploy to go live |
+| **Staff console** (`/staff`) — one morning-standup page: today's run sheet, revenue-to-recover flags, demand forecast, data health | 🟢 Built — deploy to go live |
+| **Sheet caching + resilience** — a short cache in front of both sheets serves the last good copy through a transient Google outage, so a live quote/lookup never blanks | 🟢 Built — live-safe |
+| **Automated test suite + CI** — 40 offline tests (engines, endpoints, adversarial edges) run on every code push via GitHub Actions | 🟢 Built |
 
 > **Privacy note (identity gate).** Order lookups verify a **second detail** — the caller's building or the last-4 of their phone — before any personal data is shared, on both the phone line and the web chat. This works today with **no phone number**. **Future option:** once a texting number is live, this gate can be upgraded to a **one-time SMS code** (the strongest identity check) with no change to the rest of the flow.
 
@@ -101,7 +107,7 @@ The **live ops dashboard** (Business insights), the **"ask-your-data" staff copi
 All four unlock from the **same booking capability** (Wave B) — build it once, the assistant executes all of them:
 
 1. **Smooth the peak** — offer the nearest open day first, spreading load off the two days that hold 74% of revenue.
-2. **Upsell the basket** — after the core order, offer the add-ons the data shows people take (Plastic Container $18, Mini Fridge $23).
+2. **Upsell the basket** — ✅ *built:* every quote already offers the add-ons the data shows people take (Plastic Container $18, Mini Fridge $23). Booking (Wave B) lets the assistant actually add them to the order.
 3. **Close the leak** — never finalize a storage booking with a $0 total or missing invoice.
 4. **Clean the data at the source** — confirm the correct building and a working phone at booking, killing the "unknown building" rows and enabling caller-ID next season.
 

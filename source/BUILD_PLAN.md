@@ -2,7 +2,7 @@
 
 *Technical plan — kept out of the general/exec report. Business-level roadmap lives in `PLAN.md`.*
 
-**Last updated:** 2026-07-02
+**Last updated:** 2026-07-04
 
 ---
 
@@ -15,10 +15,12 @@
 | Billing/leakage guard (C) | ✅ built + tested (exact audit counts) |
 | Wave D — insights, `/ask`, `/ops`, forecast, multi-order lookup | ✅ built + tested against live sheets (2026-07-03) |
 | Hardening — staff-key gate, per-IP verify limiter, local sheet backup | ✅ built + tested (gate dormant until `API_SECRET` is set — see CONNECTIONS §5) |
-| Backend wiring | ✅ all endpoints + MCP tools pushed to `main` (commit `7e11720`) |
+| **Round 6 upgrades** — sheet caching, upsell, phone-lookup, deeper forecast + date filters, run-sheet sequencing, condition vision, staff console | ✅ built + audited against live sheets (2026-07-04) |
+| **Test suite + CI** — `pytest` (40 cases) + GitHub Actions on every push | ✅ green locally and in workflow config |
+| Backend wiring | ✅ all endpoints + MCP tools pushed to `main` (Round 5 `7e11720`; Round 6 pushed on top) |
 | **Live?** | ⏳ **Push done — needs a manual Render "Deploy latest commit"** (auto-deploy is off) |
 
-Engines live in `backend/engines.py` (pure logic, no I/O) so they're testable and reused by `main.py`.
+Engines live in `backend/engines.py` (pure logic, no I/O) so they're testable and reused by `main.py`. The offline suite stubs the web layer (`httpx`, FastMCP, Starlette) so `main.py` imports as pure Python and every engine/endpoint path is unit-tested without a network.
 
 ---
 
@@ -45,7 +47,7 @@ Engines live in `backend/engines.py` (pure logic, no I/O) so they're testable an
 1. **Billing guard** ✅ `/billing_audit` + `should_block()`.
 2. **Invoice automation** — generate invoice ID + total at booking; block `$0`.
 3. **Payment chaser** — Twilio SMS + Stripe pay-link.
-4. **Damage / condition vision docs** — Claude vision over the item photos already collected.
+4. **Damage / condition vision docs** ✅ `/condition` page + `/condition_check` — free Gemini vision returns a good/wear/damage read with notes over the item photos already collected (dispute protection + protection-plan upsell hook). *(Built in Round 6; the auto-tag-at-pickup pipeline still rides booking write-back.)*
 
 ## Wave D — see & predict  ✅ built (2026-07-03)
 1. **Live business dashboard** ✅ `/insights` + `/insights_api` (revenue, top items, upsell pairs, funnel, per-building demand, repeat-rate, data-quality).
@@ -54,6 +56,17 @@ Engines live in `backend/engines.py` (pure logic, no I/O) so they're testable an
 4. **Next-season demand forecast** ✅ in `compute_metrics` — peak window + crews-needed, move-out-window share, August return season; surfaced as the Insights **planner** card.
 5. **Repeat-customer multi-order lookup** ✅ callers with several orders disambiguate by order #, service, or month before the identity gate.
 6. Fall return-season automation (SMS "want your stuff back?") — still later; needs booking write-back + Twilio.
+
+## Round 6 — resilience, revenue, and a real test harness  ✅ built (2026-07-04)
+Eight upgrades that need no new accounts (nothing here requires the $20 phone number or Apps Script write-back):
+1. **Sheet caching + resilience** — `fetch_csv_rows` now fronts both sheets with a 60s TTL cache (`SHEET_TTL`) and, on any fetch failure, **serves the last good copy** instead of `[]`. Cuts per-call re-downloads and survives a transient Sheets outage.
+2. **Upsell engine** — `engines.upsell_pairs()` mines item co-occurrence from the service sheet; `main._attach_upsell()` appends a "most people also add…" line to every quote path (phone/chat/voice/estimate/photo), skipping cart items, non-storage supplies, and unpriced partners.
+3. **Identify-by-phone** — `_phone_digits` / `_match_by_phone` + a `phone` arg on `do_lookup_student`: resolve a caller by their on-file number (last-10 match), disambiguate multi-name numbers, still gate identity. `lookup_student` tool + endpoint thread the `phone` param. (Auto-greet on inbound is deferred to the provisioned number.)
+4. **Deeper forecast + date-range insights** — `analytics.compute_metrics` adds `revenue_forecast` (avg order, peak-day, move-out-window revenue) and `building_peak_timing` (per-building peak date + offset). `/insights_api` accepts `from`/`to`; `_rows_in_range` + `_parse_any_date` filter both sheets; the page renders an empty-range message instead of `undefined`.
+5. **Run-sheet sequencing + capacity** — `dispatch_plan` orders each building's stops by a natural room key (`_room_key`, type-tagged tuples so numbers/letters never cross-compare) and numbers each stop; return payload adds `capacity` / `jobs_per_crew` / `utilization_pct`. `/ops` gains CSV export + print.
+6. **Condition vision** — vision refactored to a shared `_vision_json()` with `_vision_items` / `_vision_condition` wrappers + `_load_image_arg()`; new `/condition_check` endpoint and `/condition` page (upload → color-coded condition read).
+7. **Staff console** (`/staff`) — one page fetching `/dispatch_plan` + `/billing_audit` (key-gated) + `/insights_api`: today's run sheet, revenue-to-recover flags, forecast, data-health.
+8. **Test suite + CI** — `tests/` (`test_engines`, `test_main`, `test_analytics`, `test_edges`) with a `conftest.py` that stubs the web layer so `main.py` imports offline; `pytest.ini` scopes collection; `.github/workflows/tests.yml` runs it on every push. **40/40 green.**
 
 ---
 

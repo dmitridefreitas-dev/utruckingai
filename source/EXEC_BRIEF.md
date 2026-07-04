@@ -18,7 +18,9 @@ A **live AI phone assistant** plus a **data-backed plan** to automate the front 
 - **Self-serve estimate page** — a customer photographs their pile *and/or* types what they have and gets a price on the spot. Understands typos, word-quantities and **any item** — things not on the price list are AI-matched to the closest priced item, shown transparently (*"1× Skateboard — you said 'baseball bat'"*). Free AI vision, no subscription.
 - **Web chat + browser voice** — the live phone agent's exact brain, testable by text or voice for **free** (no call minutes), with the same identity-verified order lookup.
 - **Business insights + ask-your-data** — a live dashboard of revenue/demand/data-quality, and a plain-English analyst that answers questions like *"how much should I raise prices?"* with concrete numbers.
-- **Ops command center + demand forecast** — staff pick a day and get balanced crew routes with printable run sheets, plus a next-season forecast that projects the peak week and the crews it needs (the live peak day runs **334 pickups**). Repeat customers with multiple orders are now handled cleanly on the phone.
+- **Ops command center + demand forecast** — staff pick a day and get balanced crew routes with **sequenced, printable run sheets**, plus a next-season forecast that now projects the peak week, the crews it needs (the live peak day runs **334 pickups**), and the **revenue** in that window. A one-screen **staff console** rolls up today's route, billing to recover, forecast, and data health. Repeat customers with multiple orders are handled cleanly on the phone.
+- **Sells on every quote + protects on every move** — each quote now suggests the add-ons students actually store together (*"most people also add a Plastic Container or Mini Fridge"*), and a **photo condition check** reads good/wear/damage for move-out dispute protection and a protection-plan upsell. The order lookup can also recognize a returning **caller by their phone number**.
+- **Built to stay up** — a caching layer keeps quotes and lookups working through a transient Google Sheets outage, and a **40-test automated suite runs on every code change** so nothing quietly breaks.
 
 ## 📊 The numbers that matter
 | | |
@@ -37,4 +39,4 @@ Turn the assistant from *answering* to *doing*: **book pickups on the call**, **
 
 ---
 
-**Bottom line:** front-desk deflection is live now. The next build makes the assistant a receptionist *and* a salesperson — booking, quoting, and upselling on every call, at a fraction of the cost of a hire.
+**Bottom line:** front-desk deflection is live, and the assistant already quotes *and upsells* on every estimate. The next build adds the last receptionist move — **booking the pickup on the call** — at a fraction of the cost of a hire.
