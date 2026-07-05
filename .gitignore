@@ -12,6 +12,10 @@ source/analytics/backup_sheets.ps1
 source/analytics/backups/
 UTrucking_AI_Assistant_Full_Report.pdf
 
+# ── showcase sync tooling (lists PII redaction strings — never publish) ──
+sync-showcase.sh
+.showcase-build/
+
 # ── misc ──
 .claude/
 __pycache__/
