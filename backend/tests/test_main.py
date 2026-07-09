@@ -106,7 +106,7 @@ def test_pretty_items_falls_back_on_plain_text():
 # ---------- multi-order lookup ----------
 def _mo_data():
     D = [
-        {"Student": "Jordan Miles", "ID": "#13851-SS", "Service": "Summer Storage",
+        {"Student": "Jordan Miles", "ID": "#20450-SS", "Service": "Summer Storage",
          "Building": "Umrath", "Room": "204", "Date": "5/6/2026", "Phone": "3145551234", "Status": "Scheduled"},
         {"Student": "Jordan Miles", "ID": "#14990-RR", "Service": "Return Delivery",
          "Building": "Umrath", "Room": "204", "Date": "8/20/2026", "Phone": "3145551234", "Status": "Scheduled"},
@@ -114,7 +114,7 @@ def _mo_data():
          "Building": "Eliot", "Room": "12", "Date": "5/7/2026", "Phone": "3145559876", "Status": "Scheduled"},
     ]
     S = [
-        {"Student Name": "Jordan Miles", "Order#:": "13851-SS", "Service Type": "Summer Storage",
+        {"Student Name": "Jordan Miles", "Order#:": "20450-SS", "Service Type": "Summer Storage",
          "Building": "Umrath", "Invoice ID": "INV-1", "Date": "5/6/2026",
          "Summer Storage Item List": "UTrucking Box (Amount: 22.00 USD, Quantity: 2); Total: $44.00"},
         {"Student Name": "Jordan Miles", "Order#:": "14990-RR", "Service Type": "Return Delivery",
@@ -346,7 +346,7 @@ def test_first_name_only_still_offers_a_match():
 
 
 # ---- a non-building SENTENCE must never satisfy the building check (false-accept guard) ----
-@pytest.mark.parametrize("bldg", ["Danforth B", "Northgate", "Eliot A", "Umrath House", "Village East"])
+@pytest.mark.parametrize("bldg", ["Danforth B", "Northgate", "Kirkwood A", "Umrath House", "Village East"])
 @pytest.mark.parametrize("sentence", [
     "my last four are 3851", "the last four digits are 0200", "my order number is 12345",
     "I don't know", "just tell me my status", "can you please look it up", "yes that's me",
@@ -533,7 +533,7 @@ def test_phone_verify_has_bruteforce_lockout_like_chat(monkeypatch):
 
 # ---------- chat <-> voice architecture PARITY (the web chat must gate/route like the phone) ----------
 def _oid_re(s):
-    """Any order-number-looking token in a string (e.g. '#13851-SS' or '70002-TS')."""
+    """Any order-number-looking token in a string (e.g. '#20450-SS' or '70002-TS')."""
     return re.search(r"#?\d{4,6}-?[A-Za-z]{2}\b", s)
 
 
@@ -544,7 +544,7 @@ def test_chat_multi_order_lists_no_order_numbers():
     reply, state = main._lookup_flow("Jordan Miles", {}, D, S)
     assert state.get("step") == "order"                          # still asks which order
     assert _oid_re(reply) is None, "chat leaked an order number pre-verification: %r" % reply
-    assert "13851" not in reply and "14990" not in reply
+    assert "20450" not in reply and "14990" not in reply
 
 
 def test_chat_shared_name_different_people_lists_nothing():

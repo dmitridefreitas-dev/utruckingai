@@ -1,6 +1,6 @@
 # UTrucking AI Phone Assistant — Plan, Progress & Roadmap
 
-**Last updated:** 2026-07-04 · **Live agent:** v35 · **Backend:** latest pushed (Round 6 on `main`; one-click Render deploy activates the newest tools)
+**Last updated:** 2026-07-09 · **Live agent:** v43 · **Backend:** latest pushed (Round 16 on `main`; one-click Render deploy activates the newest tools)
 
 > **How to read this.** Four parts, in order:
 > **1 — What's been done** (built, tested, live). **2 — Where the value is added** (in dollars, from our own data). **3 — What's next** (the roadmap). **4 — What's required** to get there (a phone number, SMS, accounts, and their costs).
@@ -26,6 +26,12 @@ The assistant is **live and fully tested**. It answers calls in a warm, natural 
 | Transfer to the office at (314) 266-8878 | ✅ Live |
 | Safety guardrails (stays on-task, resists misuse) | ✅ Live |
 | Post-call logging (found, order ID, resolution, sentiment) | ✅ Live |
+| **Noise-proof listening** — cancels background speech in a busy dorm hallway | ✅ Live (v43) |
+| **Says the dorm names correctly** — a pronunciation dictionary for Umrath, Liggett, Nemerov, Lopata… | ✅ Live (v43) |
+| **Keypad entry** — a caller can type their order # or phone last-4 instead of speaking it | ✅ Live (v43) |
+| **Voicemail detection** — leaves a short callback message instead of talking to a machine | ✅ Live (v43) |
+| **Backup voice** — the line keeps working if the speech provider has an outage | ✅ Live (v43) |
+| **Stays on topic** — politely declines off-topic questions instead of guessing | ✅ Live (v43) |
 
 ### Built & ready (activate on the next one-click deploy)
 
@@ -50,7 +56,10 @@ The assistant is **live and fully tested**. It answers calls in a warm, natural 
 | **Damage / condition photo check** (`/condition`) — a photo returns a good/wear/damage read with notes: move-out dispute protection + a protection-plan upsell | 🟢 Built — deploy to go live |
 | **Staff console** (`/staff`) — one morning-standup page: today's run sheet, revenue-to-recover flags, demand forecast, data health | 🟢 Built — deploy to go live |
 | **Sheet caching + resilience** — a short cache in front of both sheets serves the last good copy through a transient Google outage, so a live quote/lookup never blanks | 🟢 Built — live-safe |
-| **Automated test suite + CI** — 40 offline tests (engines, endpoints, adversarial edges) run on every code push via GitHub Actions | 🟢 Built |
+| **Automated test suite + CI** — 172 offline tests (engines, endpoints, adversarial edges) run on every code push via GitHub Actions | 🟢 Built |
+| **Voice QA — every call auto-scored** — the moment a call ends, an AI reviewer grades it (identity gate held? over-promised? wrong info? caller frustrated?) and staff see a scoreboard with score, sentiment, response speed and cost per call | 🟢 Built — deploy to go live |
+| **Release gate — 12 simulated callers** — impersonators, prompt injections, third-party callers and every verification path are replayed against each new version of the assistant before it can go live | 🟢 Built |
+| **Your business data inside Claude** — the backend doubles as a secure connector so the owner can ask questions in plain English from their phone (aggregate data only; no customer details) | 🟢 Built — deploy to go live |
 
 > **Privacy note (identity gate).** Order lookups verify a **second detail** — the caller's building or the last-4 of their phone — before any personal data is shared, on both the phone line and the web chat. This works today with **no phone number**. **Future option:** once a texting number is live, this gate can be upgraded to a **one-time SMS code** (the strongest identity check) with no change to the rest of the flow.
 

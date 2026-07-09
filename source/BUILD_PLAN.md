@@ -2,7 +2,7 @@
 
 *Technical plan — kept out of the general/exec report. Business-level roadmap lives in `PLAN.md`.*
 
-**Last updated:** 2026-07-04
+**Last updated:** 2026-07-09
 
 ---
 
@@ -16,8 +16,12 @@
 | Wave D — insights, `/ask`, `/ops`, forecast, multi-order lookup | ✅ built + tested against live sheets (2026-07-03) |
 | Hardening — staff-key gate, per-IP verify limiter, local sheet backup | ✅ built + tested (gate dormant until `API_SECRET` is set — see CONNECTIONS §5) |
 | **Round 6 upgrades** — sheet caching, upsell, phone-lookup, deeper forecast + date filters, run-sheet sequencing, condition vision, staff console | ✅ built + audited against live sheets (2026-07-04) |
-| **Test suite + CI** — `pytest` (40 cases) + GitHub Actions on every push | ✅ green locally and in workflow config |
-| Backend wiring | ✅ all endpoints + MCP tools pushed to `main` (Round 5 `7e11720`; Round 6 pushed on top) |
+| **Round 16 — post-call auto-QA** (`/retell_webhook` → LLM judge → `/voiceqa`) | ✅ built + tested (needs `RETELL_API_KEY` for the live call pull) |
+| **Round 16 — public MCP endpoint** (`/mcp`, Claude connector + Retell MCP node) | ✅ built + verified over the wire |
+| **Round 16 — native Retell regression suite** (`tools/retell_suite.py`, 12 cases) | ✅ 12/12 green, three consecutive runs |
+| **Test suite + CI** — `pytest` (**172 cases**) + GitHub Actions on every push | ✅ green locally and in workflow config |
+| Backend wiring | ✅ all endpoints + MCP tools pushed to `main` (Round 16 `eb7c279`) |
+| Voice agent | ✅ **v43 published** (denoise, voicemail, pronunciation dict, fallback voices, DTMF, scope boundaries, QA webhook) |
 | **Live?** | ⏳ **Push done — needs a manual Render "Deploy latest commit"** (auto-deploy is off) |
 
 Engines live in `backend/engines.py` (pure logic, no I/O) so they're testable and reused by `main.py`. The offline suite stubs the web layer (`httpx`, FastMCP, Starlette) so `main.py` imports as pure Python and every engine/endpoint path is unit-tested without a network.
@@ -68,6 +72,20 @@ Eight upgrades that need no new accounts (nothing here requires the $20 phone nu
 7. **Staff console** (`/staff`) — one page fetching `/dispatch_plan` + `/billing_audit` (key-gated) + `/insights_api`: today's run sheet, revenue-to-recover flags, forecast, data-health.
 8. **Test suite + CI** — `tests/` (`test_engines`, `test_main`, `test_analytics`, `test_edges`) with a `conftest.py` that stubs the web layer so `main.py` imports offline; `pytest.ini` scopes collection; `.github/workflows/tests.yml` runs it on every push. **40/40 green.**
 
+## Round 16 — measure every call, publish behind a gate  ✅ built (2026-07-09)
+The step from "works when I test it" to "measured in production, gated on release." Nothing here needs a phone number or write-back.
+
+1. **Post-call auto-QA** — `POST /retell_webhook` takes Retell's `call_ended` / `call_analyzed` events; `_judge_transcript()` LLM-scores the transcript once against a fixed rubric (`identity_gate_held`, `over_promised`, `wrong_info`, `caller_frustrated`, 0–100 score, issue list) into a bounded `_QA_CALLS` scoreboard (oldest evicted at `_QA_MAX`). Judging is idempotent per call, so the follow-up `call_analyzed` event never double-charges the model. The endpoint **always** returns `{"ok": true}` — a webhook must never error back at Retell.
+2. **Voice-QA API + page** — `GET /voice_qa_api` (staff-key gated) pulls recent calls via Retell `v3/list-calls` (`RETELL_API_KEY`), merges each call's `latency.e2e.p50`, `call_cost.combined_cost` (cents → dollars), sentiment, voicemail flag and disconnection reason with the stored judge scores, and aggregates them. Without the key it degrades to the webhook-only scoreboard rather than failing. `?judge=1` scores up to 5 recent unjudged calls on demand. `GET /voiceqa` renders it; **transcripts never leave the server**.
+3. **Public MCP endpoint** — `FastMCP(..., stateless_http=True, json_response=True, transport_security=…)`. The SDK's DNS-rebinding guard defaults to a localhost-only Host allowlist, so the deployed `/mcp` answered every remote client with **421 Invalid Host**; the allowlist now includes the public host. `stateless_http` means no server-side session to lose across Render restarts. Result: `/mcp` works as a **Claude custom connector** and as a **Retell native MCP node**.
+4. **Aggregate-only MCP tool** — `business_insights()` returns the `_metrics_brief` aggregate summary (revenue, demand, pricing levers, upsell lift, funnel, data quality). No individual customer data; asserted in tests and verified live against the real sheets.
+5. **MCP auth** — `_McpAuthMiddleware` (pure ASGI, wraps the app) gates `/mcp` on `x-utrucking-key` **or** `Authorization: Bearer` when `API_SECRET` is set; unset = open, matching the dormant-gate rollout used everywhere else.
+6. **Native regression suite** — `tools/retell_suite.py` defines 12 Retell test cases (simulated-caller persona + tool mocks + graded metrics), syncs them idempotently by name, runs `create-batch-test` against a chosen LLM version, polls, and exits non-zero on any failure. `sync` / `run --version N` / `all --version N`.
+7. **Agent knobs (v43)** — `denoising_mode: noise-and-background-speech-cancellation`, `voicemail_option` (static-text drop), 12-entry IPA `pronunciation_dictionary` for building names, `fallback_voice_ids`, `user_dtmf_options` (keypad verifier entry), `enable_dynamic_voice_speed`, `enable_expressive_mode`, `timezone: America/Chicago`, `handbook_config.scope_boundaries`, `webhook_url` → `/retell_webhook?key=…`, and `x-utrucking-key` on all four custom tools.
+8. **Bug caught by the new suite** — the agent answered off-topic questions (invented weather guidance, told a joke). Fixed via a `# STAYING ON TOPIC` prompt section + `scope_boundaries`. **pytest 155 → 172**; 14/14 playground sweep; 12/12 native suite ×3 runs.
+
+> **Harness gotchas worth keeping.** `agent-playground-completion` returns **only that turn's new messages** — accumulate history client-side or every multi-turn test silently runs on a truncated transcript. And LLM judges flip-flop on **compound** metrics: keep one atomic, time-scoped assertion per metric, and always read the transcript before believing a failure.
+
 ---
 
 ## HANDOFF — what you need to do / provide
@@ -101,7 +119,9 @@ Not wired yet, on purpose — wiring it now would cause problems, not progress:
 ### Environment variables to add in Render (Service → Environment)
 | Variable | For | Notes |
 |---|---|---|
-| `GEMINI_API_KEY` | Photo-to-quote, ask-your-data copilot, any-item AI matching | **Free** at aistudio.google.com. Optional `VISION_PROVIDER=gemini` (default), `GEMINI_MODEL` (default `gemini-2.5-flash`; calls auto-fall back to `2.5-flash-lite` → `2.0-flash` on rate limits). This is the only one needed now. |
+| `GEMINI_API_KEY` | Photo-to-quote, ask-your-data copilot, any-item AI matching, **post-call QA judging** | **Free** at aistudio.google.com. Optional `VISION_PROVIDER=gemini` (default), `GEMINI_MODEL` (default `gemini-2.5-flash`; calls auto-fall back to `2.5-flash-lite` → `2.0-flash` on rate limits). |
+| `RETELL_API_KEY` | The Voice-QA page's live call pull (latency / cost / sentiment history) | Optional. Without it `/voiceqa` still works, but shows only calls reported by the webhook since the last restart. |
+| `API_SECRET` | Activates the staff gate on every PII/ops endpoint **and** `/mcp` + `/retell_webhook` + `/voice_qa_api` | The agent already sends this key (Round 16), so setting it is now a **single step** — no agent republish. Use the value in `CONNECTIONS.md → Security activation runbook`. |
 | `TWILIO_ACCOUNT_SID` · `TWILIO_AUTH_TOKEN` · `TWILIO_FROM` | SMS (reminders, texts, pay-links) | for the Wave B/C SMS tools |
 | `SHEETS_WEBAPP_URL` · `SHEETS_WEBAPP_SECRET` | Booking + invoice write-back | free Google Apps Script web app — see `SETUP_BOOKING_WRITEBACK.md` |
 | `STRIPE_API_KEY` | Card pay-links | payment chaser |
