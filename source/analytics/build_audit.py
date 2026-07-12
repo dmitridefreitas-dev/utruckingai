@@ -32,6 +32,20 @@ xlabels=[lbl(d) for d in days]
 rev=[rev_daily.get(d,0) for d in days]; vol=[serv_daily.get(d,0) for d in days]
 peak_days=set(sorted(days,key=lambda d:-rev_daily.get(d,0))[:5])
 
+# Everything below is DERIVED from the data, not hardcoded — so a refreshed metrics.json can't crash
+# the build (the old code did days.index("2026-05-12"), which raised once that date left the data) and
+# can't leave stale literals contradicting the computed figures.
+_MON=["","Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"]
+def mlbl(d):
+    y,mo,dd=d.split("-"); return "{} {}".format(_MON[int(mo)],int(dd))
+peak_d = max(days,key=lambda d:rev_daily.get(d,0)) if days else None
+peak_i = days.index(peak_d) if peak_d else 0
+peak_rev = rev_daily.get(peak_d,0) if peak_d else 0
+peak_ord = serv_daily.get(peak_d,0) if peak_d else 0
+peak_lbl = mlbl(peak_d) if peak_d else "—"
+share5 = M["insights"]["peak5_revenue_share"]
+box_qty = next((c["total_qty"] for c in M["catalog"] if c["item"]=="UTrucking Box"), 0)
+
 CH={}
 
 # 1) Hero: the move-out sprint (revenue bars + orders line)
@@ -45,9 +59,10 @@ ax2.set_ylabel("Orders",color=BLUE); ax2.tick_params(colors=BLUE); ax2.grid(Fals
 ax2.spines["top"].set_visible(False)
 style(ax); ax.set_title("The move-out sprint — daily revenue (bars) and orders (line), May 2026",
     fontweight="bold",color=NAVY,loc="left")
-ax.annotate("Peak: May 12\n$16.3K / 119 orders",xy=(days.index("2026-05-12"),16272),
-    xytext=(days.index("2026-05-12")-3.2,15200),color=NAVY,fontsize=9,fontweight="bold",
-    arrowprops=dict(arrowstyle="->",color=NAVY))
+if peak_d and peak_rev:
+    ax.annotate("Peak: {}\n${:.1f}K / {} orders".format(peak_lbl,peak_rev/1000.0,peak_ord),
+        xy=(peak_i,peak_rev),xytext=(max(peak_i-3.2,0),peak_rev*0.93),color=NAVY,fontsize=9,fontweight="bold",
+        arrowprops=dict(arrowstyle="->",color=NAVY))
 CH["hero"]=uri(fig)
 
 # 2) Pareto — revenue concentration
@@ -60,7 +75,7 @@ ax.set_xticks(range(len(sv))); ax.set_xticklabels([lbl(d) for d in sv])
 ax.yaxis.set_major_formatter(FuncFormatter(money)); ax.set_ylabel("Revenue (ranked)")
 ax2=ax.twinx(); ax2.plot(range(len(sv)),cum,color=ORANGE,marker="o",lw=2,ms=4)
 ax2.set_ylim(0,105); ax2.set_ylabel("Cumulative %",color=ORANGE); ax2.tick_params(colors=ORANGE); ax2.grid(False)
-ax2.axhline(74,ls="--",color=ORANGE,lw=1); ax2.text(len(sv)-1,77,"Top 5 days = 74%",ha="right",color=ORANGE,fontweight="bold",fontsize=9)
+ax2.axhline(share5,ls="--",color=ORANGE,lw=1); ax2.text(len(sv)-1,share5+3,"Top 5 days = {:.0f}%".format(share5),ha="right",color=ORANGE,fontweight="bold",fontsize=9)
 ax2.spines["top"].set_visible(False); style(ax)
 ax.set_title("Revenue is dangerously concentrated — a Pareto view",fontweight="bold",color=NAVY,loc="left")
 CH["pareto"]=uri(fig)
@@ -88,7 +103,7 @@ sm=M["operations"]["service_mix"]; items=list(sm.items())[:8][::-1]
 fig,ax=plt.subplots(figsize=(5.4,3.0))
 ax.barh([k for k,_ in items],[v for _,v in items],color=TEAL)
 style(ax); ax.set_xlabel("Orders")
-ax.set_title("Service mix (all 1,663 dispatch orders)",fontweight="bold",color=NAVY,loc="left")
+ax.set_title("Service mix (all {:,} dispatch orders)".format(M["counts"]["dispatch_rows"]),fontweight="bold",color=NAVY,loc="left")
 CH["mix"]=uri(fig)
 
 # 6) Fulfillment status
@@ -124,7 +139,7 @@ style(ax); ax.yaxis.set_major_formatter(FuncFormatter(money))
 ax.set_title("Box price increase → annual revenue uplift",fontweight="bold",color=NAVY,loc="left")
 for i,v in enumerate(vals):
     ax.text(i,v+120,"+{:.0f}%".format(100*v/tot_rev),ha="center",fontsize=9,color=NAVY,fontweight="bold")
-ax.set_xlabel("Price change per box (2,593 boxes/season)")
+ax.set_xlabel("Price change per box ({:,} boxes/season)".format(box_qty))
 CH["price"]=uri(fig)
 
 # 9) Data-quality / leakage
@@ -191,7 +206,7 @@ tr:nth-child(even) td{{background:#f7f9fc}}
   <div class="eyebrow" style="color:{ORANGE};margin-top:22px">University Trucking · Confidential</div>
   <h1>Data &amp; Revenue Audit</h1>
   <div class="sub">A data-science and financial-operations review of the summer-storage business — where the money comes from, where it leaks, and where to grow.</div>
-  <div class="prep">Prepared as an independent analytics review · {today}<br>Sources: live Dispatch board (1,663 orders) &amp; Service/Invoice sheet (654 records)</div>
+  <div class="prep">Prepared as an independent analytics review · {today}<br>Sources: live Dispatch board ({M['counts']['dispatch_rows']:,} orders) &amp; Service/Invoice sheet ({M['counts']['service_rows']} records)</div>
   <div class="cband">
     <div class="cstat"><div class="n">${R['total']:,.0f}</div><div class="t">Invoiced, summer-storage season</div></div>
     <div class="cstat"><div class="n">{I['peak5_revenue_share']:.0f}%</div><div class="t">of revenue in just 5 days</div></div>
@@ -214,7 +229,7 @@ tr:nth-child(even) td{{background:#f7f9fc}}
   <h3 style="margin-top:10px">What matters most</h3>
   <table>
     <tr><th style="width:31%">Finding</th><th>So what</th></tr>
-    <tr><td><b>Revenue is a spike, not a stream</b></td><td>{I['peak5_revenue_share']:.0f}% of revenue lands in 5 days (peak May 12 = $16.3K / 119 orders). Capacity must be planned to the <i>peak day</i>, not the average.</td></tr>
+    <tr><td><b>Revenue is a spike, not a stream</b></td><td>{I['peak5_revenue_share']:.0f}% of revenue lands in 5 days (peak {peak_lbl} = ${peak_rev/1000:.1f}K / {peak_ord} orders). Capacity must be planned to the <i>peak day</i>, not the average.</td></tr>
     <tr><td><b>One product carries the P&amp;L</b></td><td>The UTrucking Box is {I['box_revenue_share']:.0f}% of revenue at a flat $22, with a {I['box_attach_rate']:.0f}% attach rate — the clearest pricing lever in the business.</td></tr>
     <tr><td><b>Pricing is left on the table</b></td><td>A $2 box increase adds <b>${M['insights']['box_price_scenarios']['+$2']:,.0f}</b> (+{100*M['insights']['box_price_scenarios']['+$2']/R['total']:.1f}%) to a captive, low-elasticity move-out audience.</td></tr>
     <tr><td><b>Money leaks quietly</b></td><td>{I['summer_storage_zero_leakage']} storage orders invoiced at $0 and {M['data_quality']['service_blank_invoice']} have no invoice ID; {M['data_quality']['dispatch_building_unknown']} orders have an unknown building (routing waste).</td></tr>
@@ -243,7 +258,7 @@ tr:nth-child(even) td{{background:#f7f9fc}}
   <img src="{CH['pareto']}"><div class="cap">Days ranked by revenue with a cumulative line. The top 5 days account for {I['peak5_revenue_share']:.0f}% of the season.</div>
   <div class="call"><b>The predictor.</b> Demand ≈ academic calendar. Within the week, weekdays beat weekends (May 10 &amp; 15 were the quiet days). Pre-commit trucks and movers to the ~10-day window and staff heaviest on the two peak days.</div>
   <h3>The capacity math</h3>
-  <p>Peak day (May 12) handled <b>119 orders / $16.3K</b>. If crews cap out below peak demand, the overflow either slips to a slower day (a scheduling win) or is lost (a revenue loss). The AI agent — with booking enabled — can actively steer callers toward the shoulder days that still had headroom.</p>
+  <p>Peak day ({peak_lbl}) handled <b>{peak_ord} orders / ${peak_rev/1000:.1f}K</b>. If crews cap out below peak demand, the overflow either slips to a slower day (a scheduling win) or is lost (a revenue loss). The AI agent — with booking enabled — can actively steer callers toward the shoulder days that still had headroom.</p>
   <div class="foot"><span>UTrucking — Data &amp; Revenue Audit</span><span>2 · Seasonality</span></div>
 </div>
 

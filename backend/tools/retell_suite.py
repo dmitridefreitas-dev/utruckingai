@@ -20,7 +20,9 @@ import time
 import urllib.request
 
 API = "https://api.retellai.com"
-LLM_ID = os.getenv("RETELL_LLM_ID", "llm_9f9849c5acc548fb83c81d4867d7")
+# The production LLM id is an infra identifier — redacted here like the sheet IDs in main.py. Set the
+# real value via the RETELL_LLM_ID env var when running against the live agent.
+LLM_ID = os.getenv("RETELL_LLM_ID", "REDACTED_RETELL_LLM_ID")
 
 # ── shared fictional fixtures ────────────────────────────────────────────────
 _REDACTED_FOUND = json.dumps({
